@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: gravifon
+
+logging:
+  structured:
+    format:
+      console: logstash
+
+gravifon:
+  music-root: ${GRAVIFON_MUSIC_ROOT:/music}
+  startup-scan-enabled: ${GRAVIFON_STARTUP_SCAN_ENABLED:true}
+

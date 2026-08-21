@@ -1,0 +1,35 @@
+{
+    "name": "gravifon",
+    "image": "mcr.microsoft.com/devcontainers/java:1-21-bookworm",
+    "features": {
+        "ghcr.io/devcontainers/features/java:1": {
+            "version": "21",
+            "installMaven": true
+        },
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "22"
+        },
+        "ghcr.io/devcontainers-extra/features/ripgrep:1": {
+            "version": "latest"
+        }
+    },
+    "remoteUser": "vscode",
+    "updateRemoteUserUID": true,
+    "mounts": [
+        "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind"
+    ],
+    "remoteEnv": {
+        "SSH_AUTH_SOCK": "/ssh-agent"
+    },
+    "postCreateCommand": "npm install --global @fission-ai/openspec@1.10.0",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "vscjava.vscode-java-pack"
+            ],
+            "settings": {
+                "java.compile.nullAnalysis.mode": "disabled"
+            }
+        }
+    }
+}

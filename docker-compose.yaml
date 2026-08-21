@@ -1,0 +1,13 @@
+services:
+  gravifon:
+    image: ${GRAVIFON_IMAGE_NAME:-gravifon}:${GRAVIFON_IMAGE_TAG:-latest}
+    container_name: gravifon
+    ports:
+      - "8080:8080"
+    environment:
+      GRAVIFON_MUSIC_ROOT: /music
+    volumes:
+      - ~/Library:/music:ro
+    restart: unless-stopped
+
+
