@@ -6,8 +6,9 @@ public record PlaybackStateResponse(
         String activePlaylistId,
         String currentTrackId,
         String playbackMode,
-    String transportState,
-        long positionSeconds
+        String transportState,
+        long positionSeconds,
+        String positionOrigin
 ) {
     public static PlaybackStateResponse from(PlaybackState state) {
         return new PlaybackStateResponse(
@@ -15,7 +16,8 @@ public record PlaybackStateResponse(
                 state.currentTrackId(),
                 state.playbackMode().name().toLowerCase(),
                 state.transportState().name().toLowerCase(),
-                state.positionSeconds()
+                state.positionSeconds(),
+                state.positionOrigin().toLowerCase()
         );
     }
 }

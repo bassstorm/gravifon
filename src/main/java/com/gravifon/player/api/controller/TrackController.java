@@ -2,9 +2,12 @@ package com.gravifon.player.api.controller;
 
 import com.gravifon.player.api.error.ResourceNotFoundException;
 import com.gravifon.player.api.model.TrackResponse;
-import com.gravifon.player.catalog.service.MediaCatalogService;
+import com.gravifon.player.registry.service.TrackRegistry;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,22 +16,34 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/tracks")
 public class TrackController {
 
-    private final MediaCatalogService mediaCatalogService;
+    private final TrackRegistry trackRegistry;
 
-    public TrackController(MediaCatalogService mediaCatalogService) {
-        this.mediaCatalogService = mediaCatalogService;
+    public TrackController(TrackRegistry trackRegistry) {
+        this.trackRegistry = trackRegistry;
     }
 
     @GetMapping
     public List<TrackResponse> listTracks() {
-        return mediaCatalogService.listTracks().stream().map(TrackResponse::from).toList();
+        return trackRegistry.listTracks().stream().map(TrackResponse::from).toList();
     }
 
     @GetMapping("/{trackId}")
     public TrackResponse getTrack(@PathVariable String trackId) {
-        return mediaCatalogService.findTrackById(trackId)
+        return trackRegistry.findTrackById(trackId)
                 .map(TrackResponse::from)
                 .orElseThrow(() -> new ResourceNotFoundException("Track not found: " + trackId));
+    }
+
+    @PatchMapping("/{trackId}/metadata")
+    public TrackResponse updateMetadata(@PathVariable String trackId,
+                                        @RequestBody com.gravifon.player.api.model.TrackMetadataUpdateRequest request) {
+        return TrackResponse.from(trackRegistry.updateMetadata(trackId, request.metadata()));
+    }
+
+    @PostMapping("/{trackId}/state")
+    public TrackResponse reportState(@PathVariable String trackId,
+                                     @RequestBody com.gravifon.player.api.model.TrackStateReportRequest request) {
+        return TrackResponse.from(trackRegistry.reportState(trackId, request.kind(), request.message(), request.clear()));
     }
 }
 

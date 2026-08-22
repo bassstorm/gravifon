@@ -10,13 +10,14 @@ Browser (SPA)
   ▼                    ▼
 Spring Boot app
   ├── /api/tracks          – catalog metadata
-  ├── /api/playlists       – in-memory playlists
+  ├── /api/playlists       – persistent playlists
   ├── /api/playback        – server-maintained playback context (track/playlist/mode/position)
   └── /api/stream/{id}     – zero-copy FileChannel byte-range streaming
 ```
 
-**Bounded contexts:** `catalog` → `playlist` → `playback` → `streaming` → `api`
-Transport state is client-managed. Server state is in-memory and resets on restart.
+**Bounded contexts:** `registry` → `playlist` → `playback` → `streaming` → `api`
+The registry, playlists, and playback context are stored in SQLite. `GET /api/playback`
+is read-only; a client initializes playback with `POST /api/playback/init`.
 
 ## Build and verify
 
@@ -29,7 +30,7 @@ Line coverage ≥ 80% on business logic is enforced by JaCoCo during `verify`.
 ## Run locally
 
 ```bash
-GRAVIFON_MUSIC_ROOT=/path/to/music mvn spring-boot:run -Dspring-boot.run.profiles=local
+GRAVIFON_LIBRARY_DIR=/path/to/music mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
 Open `http://localhost:8080`.
@@ -42,6 +43,22 @@ docker compose up
 ```
 
 The Docker profile builds the image locally; Compose consumes it. Runtime configuration (mounts, ports, environment) is defined in the containerized-runtime spec.
+
+The container uses `/music` for the read-only library and `/config` for the SQLite
+database (`gravifon.db`). Compose uses Docker-managed volumes by default, so no
+host directory is assumed or tracked. Set `GRAVIFON_LIBRARY_PATH` to a host music
+directory (for example, `~/Library`) and `GRAVIFON_CONFIG_PATH` to a host config
+directory when persistence outside Docker is required. Both variables also accept
+named volumes. The application paths are `/music` and `/config`, configurable with
+`GRAVIFON_LIBRARY_DIR` and `GRAVIFON_CONFIG_DIR` when running outside Compose.
+
+For a host-backed persistence check:
+
+```bash
+GRAVIFON_LIBRARY_PATH="$HOME/Library" \
+GRAVIFON_CONFIG_PATH="$(mktemp -d)" \
+docker compose up --build
+```
 
 ## Conventions
 

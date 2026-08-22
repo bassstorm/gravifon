@@ -41,7 +41,19 @@ class PlaybackControllerWebMvcTest {
                 .andExpect(jsonPath("$.currentTrackId").value("t1"))
                 .andExpect(jsonPath("$.playbackMode").value("sequential"))
                 .andExpect(jsonPath("$.transportState").value("paused"))
-                .andExpect(jsonPath("$.positionSeconds").value(12));
+                .andExpect(jsonPath("$.positionSeconds").value(12))
+                .andExpect(jsonPath("$.positionOrigin").value("observed"));
+    }
+
+    @Test
+    void playbackInitializationIsAnExplicitAction() throws Exception {
+        when(playbackService.initializeClient()).thenReturn(state("t1", TransportState.PAUSED, 12));
+
+        mockMvc.perform(post("/api/playback/init"))
+                .andExpect(status().isOk());
+
+        org.mockito.Mockito.verify(playbackService).initializeClient();
+        org.mockito.Mockito.verify(playbackService, org.mockito.Mockito.never()).getState();
     }
 
     @Test

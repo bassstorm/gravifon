@@ -1,12 +1,14 @@
 package com.gravifon.player.api.model;
 
-import com.gravifon.player.catalog.model.Track;
+import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.model.TrackKind;
+import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.playback.model.PlaybackMode;
 import com.gravifon.player.playback.model.PlaybackState;
 import com.gravifon.player.playback.model.TransportState;
 import com.gravifon.player.playlist.model.Playlist;
-import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,7 +17,8 @@ class ApiModelMappingTest {
 
     @Test
     void trackResponse_fromMapsFields() {
-        Track track = new Track("track-1", Path.of("/music/a.mp3"), "a.mp3", "mp3", 42L);
+        Track track = new Track("track-1", TrackKind.FILE, Map.of(), 42L, TrackState.healthy(),
+            "a.mp3", "mp3", null, null, null);
 
         TrackResponse response = TrackResponse.from(track);
 

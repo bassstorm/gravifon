@@ -27,6 +27,11 @@ public class PlaybackController {
         return PlaybackStateResponse.from(playbackService.getState());
     }
 
+    @PostMapping("/init")
+    public PlaybackStateResponse initializeClient() {
+        return PlaybackStateResponse.from(playbackService.initializeClient());
+    }
+
     @PostMapping("/playlist/{playlistId}")
     public PlaybackStateResponse selectPlaylist(@PathVariable String playlistId) {
         return PlaybackStateResponse.from(playbackService.selectPlaylist(playlistId));

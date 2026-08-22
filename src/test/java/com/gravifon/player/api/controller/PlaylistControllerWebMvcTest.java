@@ -6,7 +6,8 @@ import com.gravifon.player.playback.model.PlaybackState;
 import com.gravifon.player.playback.model.TransportState;
 import com.gravifon.player.playback.service.PlaybackService;
 import com.gravifon.player.playlist.model.Playlist;
-import com.gravifon.player.playlist.service.InMemoryPlaylistService;
+import com.gravifon.player.playlist.service.PlaylistService;
+import com.gravifon.player.registry.service.StreamTrackRegistrar;
 import com.gravifon.player.observability.CorrelationIdFilter;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -18,10 +19,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.any;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -33,17 +34,21 @@ class PlaylistControllerWebMvcTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private InMemoryPlaylistService playlistService;
+        private PlaylistService playlistService;
 
         @MockitoBean
         private PlaybackService playbackService;
+
+        @MockitoBean
+        private StreamTrackRegistrar streamTrackRegistrar;
 
     @Test
     void listPlaylists_returnsDtosWithActiveFlag() throws Exception {
         Playlist active = new Playlist("all-tracks", "All Tracks", List.of("t1", "t2"));
         Playlist other = new Playlist("favorites", "Favorites", List.of("t2"));
 
-        when(playlistService.getActivePlaylist()).thenReturn(active);
+        when(playlistService.getActive()).thenReturn(active);
+        when(playlistService.activeId()).thenReturn(java.util.Optional.of("all-tracks"));
         when(playlistService.listPlaylists()).thenReturn(List.of(active, other));
 
         mockMvc.perform(get("/api/playlists")
@@ -61,11 +66,13 @@ class PlaylistControllerWebMvcTest {
         Playlist active = new Playlist("all-tracks", "All Tracks", List.of("t1"));
 
         when(playlistService.getPlaylist("all-tracks")).thenReturn(active);
-        when(playlistService.getActivePlaylist()).thenReturn(active);
+        when(playlistService.getActive()).thenReturn(active);
+        when(playlistService.activeId()).thenReturn(java.util.Optional.of("all-tracks"));
 
         mockMvc.perform(get("/api/playlists/all-tracks").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("all-tracks"))
+                .andExpect(jsonPath("$.mode").value("SEQUENTIAL"))
                 .andExpect(jsonPath("$.name").value("All Tracks"))
                 .andExpect(jsonPath("$.active").value(true));
     }
@@ -82,22 +89,26 @@ class PlaylistControllerWebMvcTest {
     }
 
     @Test
-    void playlistMutationEndpoints_returnNotImplemented() throws Exception {
+    void playlistMutationEndpoints_persistChanges() throws Exception {
+        Playlist playlist = new Playlist("p1", "Playlist", List.of());
+        when(playlistService.create(any(), any(), any())).thenReturn(playlist);
+        when(playlistService.getPlaylist("p1")).thenReturn(playlist);
+        when(playlistService.getActive()).thenReturn(playlist);
+        when(playlistService.rename("p1", "Renamed")).thenReturn(playlist);
+
         mockMvc.perform(post("/api/playlists")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isNotImplemented())
-                .andExpect(jsonPath("$.message").value("Playlist mutations are not yet implemented"));
+                        .content("{\"name\":\"Created\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("p1"));
 
-        mockMvc.perform(put("/api/playlists/all-tracks")
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/playlists/p1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isNotImplemented())
-                .andExpect(jsonPath("$.message").value("Playlist mutations are not yet implemented"));
+                        .content("{\"name\":\"Renamed\"}"))
+                .andExpect(status().isOk());
 
-        mockMvc.perform(delete("/api/playlists/all-tracks"))
-                .andExpect(status().isNotImplemented())
-                .andExpect(jsonPath("$.message").value("Playlist mutations are not yet implemented"));
+        mockMvc.perform(delete("/api/playlists/p1"))
+                .andExpect(status().isNoContent());
     }
 }
 

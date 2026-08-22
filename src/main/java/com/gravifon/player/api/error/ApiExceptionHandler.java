@@ -2,6 +2,7 @@ package com.gravifon.player.api.error;
 
 import com.gravifon.player.api.model.ApiErrorResponse;
 import com.gravifon.player.observability.CorrelationIdFilter;
+import java.io.IOException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
@@ -34,6 +35,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiErrorResponse> handleBadRequest(IllegalArgumentException ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(IOException.class)
+    public ResponseEntity<ApiErrorResponse> handleIoFailure(IOException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request);
     }
 
     @ExceptionHandler(Exception.class)

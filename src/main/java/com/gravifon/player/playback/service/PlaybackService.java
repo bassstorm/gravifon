@@ -1,11 +1,12 @@
 package com.gravifon.player.playback.service;
 
-import com.gravifon.player.catalog.model.Track;
-import com.gravifon.player.catalog.service.MediaCatalogService;
 import com.gravifon.player.playback.model.PlaybackMode;
 import com.gravifon.player.playback.model.PlaybackState;
 import com.gravifon.player.playback.model.TransportState;
-import com.gravifon.player.playlist.service.InMemoryPlaylistService;
+import com.gravifon.player.playlist.service.PlaylistService;
+import com.gravifon.player.registry.repository.TrackRepository;
+import com.gravifon.player.playback.repository.PlaybackStateRepository;
+import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -15,9 +16,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class PlaybackService {
 
-    private final InMemoryPlaylistService playlistService;
-    private final MediaCatalogService catalogService;
+    private final PlaylistAccess playlistService;
+    private final DurationLookup durationLookup;
     private final Random random;
+    private final PlaybackStateRepository stateRepository;
+    private static final String SESSION_ID = "default";
 
     private String currentTrackId;
     private PlaybackMode playbackMode = PlaybackMode.SEQUENTIAL;
@@ -26,23 +29,83 @@ public class PlaybackService {
     private Long reportedPositionSeconds;
 
     @Autowired
-    public PlaybackService(InMemoryPlaylistService playlistService, MediaCatalogService catalogService) {
-        this(playlistService, catalogService, new Random());
+    public PlaybackService(PlaylistService playlistService, TrackRepository trackRepository,
+                           PlaybackStateRepository stateRepository) {
+        this(playlistService, trackRepository, new Random(), stateRepository);
     }
 
-    PlaybackService(InMemoryPlaylistService playlistService, MediaCatalogService catalogService, Random random) {
+    PlaybackService(PlaylistService playlistService, TrackRepository trackRepository, Random random,
+                    PlaybackStateRepository stateRepository) {
+        this(new PlaylistAccess() {
+            @Override
+            public com.gravifon.player.playlist.model.Playlist getActivePlaylist() {
+                return playlistService.getActive();
+            }
+
+            @Override
+            public com.gravifon.player.playlist.model.Playlist selectPlaylist(String playlistId) {
+                return playlistService.select(playlistId);
+            }
+
+            @Override
+            public void activatePlaylist(String playlistId) {
+                playlistService.activate(playlistId);
+            }
+
+            @Override
+            public void setMode(String playlistId, PlaybackMode mode) {
+                playlistService.setMode(playlistId, mode);
+            }
+        }, trackRepository::findById, random, stateRepository);
+    }
+
+    private PlaybackService(PlaylistAccess playlistService, DurationLookup durationLookup, Random random,
+                            PlaybackStateRepository stateRepository) {
         this.playlistService = playlistService;
-        this.catalogService = catalogService;
+        this.durationLookup = durationLookup;
         this.random = random;
+        this.stateRepository = stateRepository;
+    }
+
+    @PostConstruct
+    void restoreState() {
+        if (stateRepository == null) {
+            return;
+        }
+        stateRepository.find(SESSION_ID).ifPresent(state -> {
+            if (state.activePlaylistId() != null) {
+                try {
+                    playlistService.activatePlaylist(state.activePlaylistId());
+                } catch (com.gravifon.player.api.error.ResourceNotFoundException ignored) {
+                    return;
+                }
+            }
+            currentTrackId = state.currentTrackId();
+            transportState = state.transportState() == TransportState.PLAYING
+                    ? TransportState.PAUSED : state.transportState();
+            observedPositionSeconds = state.positionSeconds();
+                reportedPositionSeconds = "REPORTED".equals(state.positionOrigin())
+                    ? state.positionSeconds() : null;
+        });
     }
 
     public synchronized PlaybackState getState() {
         return snapshot();
     }
 
+    public synchronized PlaybackState initializeClient() {
+        if (transportState == TransportState.PLAYING) {
+            transportState = TransportState.PAUSED;
+            persist();
+        }
+        return snapshot();
+    }
+
     public synchronized PlaybackState selectPlaylist(String playlistId) {
-        playlistService.selectPlaylist(playlistId);
+        var playlist = playlistService.selectPlaylist(playlistId);
+        playbackMode = playlist.playbackMode();
         selectInitialTrack();
+        persist();
         return snapshot();
     }
 
@@ -58,7 +121,9 @@ public class PlaybackService {
         if (mode == null) {
             throw new IllegalArgumentException("Playback mode is required");
         }
+        playlistService.setMode(playlistService.getActivePlaylist().id(), mode);
         this.playbackMode = mode;
+        persist();
         return snapshot();
     }
 
@@ -73,6 +138,7 @@ public class PlaybackService {
         if (transportState == TransportState.STOPPED) {
             clearPosition();
         }
+        persist();
         return snapshot();
     }
 
@@ -88,6 +154,7 @@ public class PlaybackService {
             case SEQUENTIAL -> nextSequential(tracks);
             case RANDOM -> tracks.get(random.nextInt(tracks.size()));
         });
+        persist();
         return snapshot();
     }
 
@@ -100,6 +167,7 @@ public class PlaybackService {
             return snapshot();
         }
         reportedPositionSeconds = positionSeconds;
+        persist();
         return snapshot();
     }
 
@@ -111,6 +179,7 @@ public class PlaybackService {
                 long streamedPosition = Math.min(duration,
                     (long) (((double) endByte + 1d) / totalBytes * duration));
             observedPositionSeconds = Math.max(observedPositionSeconds, streamedPosition);
+            persist();
         });
     }
 
@@ -151,8 +220,8 @@ public class PlaybackService {
 
     private Optional<Long> currentTrackDurationSeconds() {
         return Optional.ofNullable(currentTrackId)
-                .flatMap(catalogService::findTrackById)
-                .map(Track::durationSeconds);
+                .flatMap(durationLookup::find)
+                .map(com.gravifon.player.registry.model.Track::durationSeconds);
     }
 
     private List<String> activeTrackIds() {
@@ -160,13 +229,42 @@ public class PlaybackService {
     }
 
     private PlaybackState snapshot() {
+        var activePlaylist = playlistService.getActivePlaylistOptional().orElse(null);
+        boolean reported = reportedPositionSeconds != null;
         return new PlaybackState(
-                playlistService.getActivePlaylist().id(),
+                activePlaylist == null ? null : activePlaylist.id(),
                 currentTrackId,
                 playbackMode,
                 transportState,
-                reportedPositionSeconds != null ? reportedPositionSeconds : observedPositionSeconds
+                reported ? reportedPositionSeconds : observedPositionSeconds,
+                reported ? "REPORTED" : "OBSERVED"
         );
+    }
+
+    private void persist() {
+        if (stateRepository != null && playlistService.getActivePlaylistOptional().isPresent()) {
+            PlaybackState state = snapshot();
+            stateRepository.save(SESSION_ID, state, state.positionOrigin());
+        }
+    }
+
+    private interface PlaylistAccess {
+        com.gravifon.player.playlist.model.Playlist getActivePlaylist();
+        default Optional<com.gravifon.player.playlist.model.Playlist> getActivePlaylistOptional() {
+            try {
+                return Optional.ofNullable(getActivePlaylist());
+            } catch (com.gravifon.player.api.error.ResourceNotFoundException exception) {
+                return Optional.empty();
+            }
+        }
+        com.gravifon.player.playlist.model.Playlist selectPlaylist(String playlistId);
+        void activatePlaylist(String playlistId);
+        void setMode(String playlistId, PlaybackMode mode);
+    }
+
+    @FunctionalInterface
+    private interface DurationLookup {
+        Optional<com.gravifon.player.registry.model.Track> find(String trackId);
     }
 }
 

@@ -26,10 +26,12 @@ COPY --from=build /build/target/gravifon-*.jar app.jar
 
 # Music library is mounted here at runtime
 VOLUME /music
+VOLUME /config
 
 EXPOSE 8080
 
-ENV GRAVIFON_MUSIC_ROOT=/music
+ENV GRAVIFON_LIBRARY_DIR=/music
+ENV GRAVIFON_CONFIG_DIR=/config
 ENV SPRING_PROFILES_ACTIVE=""
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

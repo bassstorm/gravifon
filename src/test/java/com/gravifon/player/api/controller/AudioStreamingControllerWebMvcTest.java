@@ -1,7 +1,11 @@
 package com.gravifon.player.api.controller;
 
 import com.gravifon.player.api.error.ApiExceptionHandler;
-import com.gravifon.player.catalog.service.MediaCatalogService;
+import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.model.TrackKind;
+import com.gravifon.player.registry.model.TrackState;
+import com.gravifon.player.registry.service.TrackRegistry;
+import com.gravifon.player.registry.stream.StreamProxy;
 import com.gravifon.player.observability.CorrelationIdFilter;
 import com.gravifon.player.playback.service.PlaybackService;
 import java.nio.file.Files;
@@ -32,10 +36,13 @@ class AudioStreamingControllerWebMvcTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private MediaCatalogService mediaCatalogService;
+    private TrackRegistry trackRegistry;
 
     @MockitoBean
     private PlaybackService playbackService;
+
+    @MockitoBean
+    private StreamProxy streamProxy;
 
     @TempDir
     Path tempDir;
@@ -43,7 +50,8 @@ class AudioStreamingControllerWebMvcTest {
     @Test
     void streamTrack_withoutRange_returnsWholeResource() throws Exception {
         Path track = createTrackFile("track.mp3", "0123456789");
-        when(mediaCatalogService.resolveTrackPath("t1")).thenReturn(Optional.of(track));
+        when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(fileTrack("t1", "mp3")));
+        when(trackRegistry.resolveTrackPath("t1")).thenReturn(Optional.of(track));
 
         mockMvc.perform(get("/api/stream/t1").accept(MediaType.ALL))
                 .andExpect(status().isOk())
@@ -57,7 +65,8 @@ class AudioStreamingControllerWebMvcTest {
     @Test
     void streamTrack_withClosedRange_returnsPartialContent() throws Exception {
         Path track = createTrackFile("track.mp3", "0123456789");
-        when(mediaCatalogService.resolveTrackPath("t1")).thenReturn(Optional.of(track));
+        when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(fileTrack("t1", "mp3")));
+        when(trackRegistry.resolveTrackPath("t1")).thenReturn(Optional.of(track));
 
         mockMvc.perform(get("/api/stream/t1").header(HttpHeaders.RANGE, "bytes=2-5"))
                 .andExpect(status().isPartialContent())
@@ -70,7 +79,8 @@ class AudioStreamingControllerWebMvcTest {
     @Test
     void streamTrack_withOpenEndedRange_returnsPartialContentToEnd() throws Exception {
         Path track = createTrackFile("track.ogg", "abcdefghij");
-        when(mediaCatalogService.resolveTrackPath("t2")).thenReturn(Optional.of(track));
+        when(trackRegistry.findTrackById("t2")).thenReturn(Optional.of(fileTrack("t2", "ogg")));
+        when(trackRegistry.resolveTrackPath("t2")).thenReturn(Optional.of(track));
 
         mockMvc.perform(get("/api/stream/t2").header(HttpHeaders.RANGE, "bytes=6-"))
                 .andExpect(status().isPartialContent())
@@ -82,7 +92,8 @@ class AudioStreamingControllerWebMvcTest {
     @Test
     void streamTrack_withUnsatisfiableRange_returns416() throws Exception {
         Path track = createTrackFile("track.flac", "abcdefghij");
-        when(mediaCatalogService.resolveTrackPath("t3")).thenReturn(Optional.of(track));
+        when(trackRegistry.findTrackById("t3")).thenReturn(Optional.of(fileTrack("t3", "flac")));
+        when(trackRegistry.resolveTrackPath("t3")).thenReturn(Optional.of(track));
 
         mockMvc.perform(get("/api/stream/t3").header(HttpHeaders.RANGE, "bytes=100-120"))
                 .andExpect(status().isRequestedRangeNotSatisfiable())
@@ -91,7 +102,7 @@ class AudioStreamingControllerWebMvcTest {
 
     @Test
     void streamTrack_withUnknownTrack_returns404() throws Exception {
-        when(mediaCatalogService.resolveTrackPath("missing")).thenReturn(Optional.empty());
+        when(trackRegistry.resolveTrackPath("missing")).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/stream/missing"))
                 .andExpect(status().isNotFound())
@@ -103,6 +114,11 @@ class AudioStreamingControllerWebMvcTest {
         Path track = tempDir.resolve(fileName);
         Files.writeString(track, content);
         return track;
+    }
+
+    private Track fileTrack(String id, String format) {
+        return new Track(id, TrackKind.FILE, java.util.Map.of(), null, TrackState.healthy(),
+                id + "." + format, format, null, null, null);
     }
 }
 

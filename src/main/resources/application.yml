@@ -1,6 +1,8 @@
 spring:
   application:
     name: gravifon
+  flyway:
+    locations: classpath:db/migration
 
 logging:
   structured:
@@ -8,6 +10,14 @@ logging:
       console: logstash
 
 gravifon:
-  music-root: ${GRAVIFON_MUSIC_ROOT:/music}
+  music-root: ${GRAVIFON_LIBRARY_DIR:/music}
+  config-dir: ${GRAVIFON_CONFIG_DIR:/config}
   startup-scan-enabled: ${GRAVIFON_STARTUP_SCAN_ENABLED:true}
+  streams:
+    refresh-enabled: ${GRAVIFON_STREAM_REFRESH_ENABLED:true}
+    refresh-ahead: ${GRAVIFON_STREAM_REFRESH_AHEAD:PT1H}
+    refresh-interval: ${GRAVIFON_STREAM_REFRESH_INTERVAL:PT10M}
+    refresh-scope: ${GRAVIFON_STREAM_REFRESH_SCOPE:ACTIVE_PLAYLIST_PLUS_NEXT}
+    refresh-timeout: ${GRAVIFON_STREAM_REFRESH_TIMEOUT:PT5S}
+    refresh-max-attempts: ${GRAVIFON_STREAM_REFRESH_MAX_ATTEMPTS:2}
 

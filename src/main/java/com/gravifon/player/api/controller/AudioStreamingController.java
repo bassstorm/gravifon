@@ -1,7 +1,10 @@
 package com.gravifon.player.api.controller;
 
 import com.gravifon.player.api.error.ResourceNotFoundException;
-import com.gravifon.player.catalog.service.MediaCatalogService;
+import com.gravifon.player.registry.service.TrackRegistry;
+import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.model.TrackKind;
+import com.gravifon.player.registry.stream.StreamProxy;
 import com.gravifon.player.playback.service.PlaybackService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,12 +27,14 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/stream")
 public class AudioStreamingController {
 
-    private final MediaCatalogService mediaCatalogService;
+    private final TrackRegistry trackRegistry;
     private final PlaybackService playbackService;
+    private final StreamProxy streamProxy;
 
-    public AudioStreamingController(MediaCatalogService mediaCatalogService, PlaybackService playbackService) {
-        this.mediaCatalogService = mediaCatalogService;
+    public AudioStreamingController(TrackRegistry trackRegistry, PlaybackService playbackService, StreamProxy streamProxy) {
+        this.trackRegistry = trackRegistry;
         this.playbackService = playbackService;
+        this.streamProxy = streamProxy;
     }
 
     @GetMapping("/{trackId}")
@@ -40,8 +45,14 @@ public class AudioStreamingController {
 
         // Resolve and validate everything before touching the response, so any
         // exception can still be handled cleanly by the @RestControllerAdvice.
-        Path trackPath = mediaCatalogService.resolveTrackPath(trackId)
-                .orElseThrow(() -> new ResourceNotFoundException("Track not found: " + trackId));
+        Track track = trackRegistry.findTrackById(trackId)
+            .orElseThrow(() -> new ResourceNotFoundException("Track not found: " + trackId));
+        if (track.kind() == TrackKind.STREAM) {
+            streamProxy.proxy(track, request, response);
+            return;
+        }
+        Path trackPath = trackRegistry.resolveTrackPath(trackId)
+            .orElseThrow(() -> new ResourceNotFoundException("Track not found: " + trackId));
 
         long fileLength;
         try (FileChannel probe = FileChannel.open(trackPath, StandardOpenOption.READ)) {

@@ -1,7 +1,5 @@
-spring:
-  config:
-    activate:
-      on-profile: local
+gravifon:
+  config-dir: ${GRAVIFON_CONFIG_DIR:${java.io.tmpdir}/gravifon}
 
 logging:
   structured:

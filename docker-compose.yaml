@@ -1,13 +1,19 @@
 services:
   gravifon:
-    image: ${GRAVIFON_IMAGE_NAME:-gravifon}:${GRAVIFON_IMAGE_TAG:-latest}
+    image: gravifon:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: gravifon
     ports:
       - "8080:8080"
     environment:
-      GRAVIFON_MUSIC_ROOT: /music
+      GRAVIFON_LIBRARY_DIR: /music
+      GRAVIFON_CONFIG_DIR: /config
     volumes:
-      - ~/Library:/music:ro
-    restart: unless-stopped
+      - ${GRAVIFON_LIBRARY_PATH:-gravifon-library}:/music:ro
+      - ${GRAVIFON_CONFIG_PATH:-gravifon-config}:/config
 
-
+volumes:
+  gravifon-library:
+  gravifon-config:

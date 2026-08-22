@@ -1,10 +1,11 @@
 package com.gravifon.player.api.controller;
 
 import com.gravifon.player.api.error.ApiExceptionHandler;
-import com.gravifon.player.catalog.model.Track;
-import com.gravifon.player.catalog.service.MediaCatalogService;
+import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.model.TrackKind;
+import com.gravifon.player.registry.model.TrackState;
+import com.gravifon.player.registry.service.TrackRegistry;
 import com.gravifon.player.observability.CorrelationIdFilter;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -29,12 +30,13 @@ class TrackControllerWebMvcTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private MediaCatalogService mediaCatalogService;
+    private TrackRegistry trackRegistry;
 
     @Test
     void listTracks_returnsTrackDtosAndPreservesCorrelationHeader() throws Exception {
-        Track track = new Track("track-1", Path.of("/music/a.mp3"), "a.mp3", "mp3", 123L);
-        when(mediaCatalogService.listTracks()).thenReturn(List.of(track));
+        Track track = new Track("track-1", TrackKind.FILE, java.util.Map.of(), 123L, TrackState.healthy(),
+            "a.mp3", "mp3", null, null, null);
+        when(trackRegistry.listTracks()).thenReturn(List.of(track));
 
         mockMvc.perform(get("/api/tracks")
                         .header(CorrelationIdFilter.CORRELATION_ID_HEADER, "cid-123")
@@ -49,7 +51,7 @@ class TrackControllerWebMvcTest {
 
     @Test
     void getTrack_returns404ApiErrorWhenMissing() throws Exception {
-        when(mediaCatalogService.findTrackById("missing")).thenReturn(Optional.empty());
+        when(trackRegistry.findTrackById("missing")).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/tracks/missing")
                         .header(CorrelationIdFilter.CORRELATION_ID_HEADER, "cid-missing")
@@ -64,7 +66,7 @@ class TrackControllerWebMvcTest {
 
     @Test
     void getTrack_returns500ApiErrorForUnexpectedFailure() throws Exception {
-        when(mediaCatalogService.findTrackById("boom")).thenThrow(new RuntimeException("unexpected"));
+        when(trackRegistry.findTrackById("boom")).thenThrow(new RuntimeException("unexpected"));
 
         mockMvc.perform(get("/api/tracks/boom")
                         .header(CorrelationIdFilter.CORRELATION_ID_HEADER, "cid-500")
