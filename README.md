@@ -27,6 +27,28 @@ mvn clean verify
 
 Line coverage ≥ 80% on business logic is enforced by JaCoCo during `verify`.
 
+## Development container
+
+The recommended development environment is the Dev Container in `.devcontainer/`.
+It provides Java 21, Maven, Node 22, OpenSpec, Docker CLI, Docker Compose, and
+an isolated Docker-in-Docker daemon. Rebuild or recreate the Dev Container after
+changing its features.
+
+Run the complete verification workflow from inside the Dev Container:
+
+```bash
+mvn clean test
+mvn clean verify
+docker compose config
+docker compose down -v
+docker compose up --build
+```
+
+The nested daemon has its own containers, images, networks, and volumes; it does
+not use the host Docker socket or share host Docker state. This development
+environment behavior is separate from the application container runtime
+described below.
+
 ## Run locally
 
 ```bash

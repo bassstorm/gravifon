@@ -79,10 +79,23 @@ validation scope. Use `openspec validate --all --no-interactive` or an explicit
 scope such as `--changes` or `--specs`; add `--json` when machine-readable
 output is useful.
 
-The Dev Container deliberately does not mount the Docker socket and does not provide Docker CLI access.
-Use normal host mode for application Compose runs, Docker image builds, and release routines:
+The Dev Container uses the Docker-in-Docker feature with an isolated Docker
+daemon. It does not mount the host Docker socket. Docker CLI, Docker Compose,
+image builds, and container-sensitive verification are supported inside the
+Dev Container. Rebuild or recreate the Dev Container after changing its
+features. Docker state belongs to the nested daemon and is separate from host
+containers, images, networks, and volumes.
+
+Use the Dev Container for the complete verification workflow:
 
 ```bash
-mvn clean package -Pdocker
-docker compose up
+mvn clean test
+mvn clean verify
+docker compose config
+docker compose down -v
+docker compose up --build
 ```
+
+Host mode is only required for release workflows that intentionally publish or
+deploy through the host Docker daemon; it is not needed for normal development
+or verification.
