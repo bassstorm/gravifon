@@ -69,9 +69,15 @@ Use Dev Container mode for Maven, Java, and OpenSpec work:
 
 ```bash
 openspec list
-openspec validate
+openspec validate --all --no-interactive --json
 mvn clean verify
 ```
+
+Agents MUST use explicit, non-interactive OpenSpec command options. In
+particular, do not run bare `openspec validate`, because it prompts for the
+validation scope. Use `openspec validate --all --no-interactive` or an explicit
+scope such as `--changes` or `--specs`; add `--json` when machine-readable
+output is useful.
 
 The Dev Container deliberately does not mount the Docker socket and does not provide Docker CLI access.
 Use normal host mode for application Compose runs, Docker image builds, and release routines:
