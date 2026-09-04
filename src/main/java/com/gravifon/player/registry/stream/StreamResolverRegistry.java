@@ -1,9 +1,12 @@
 package com.gravifon.player.registry.stream;
 
+import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.model.Track;
 import java.util.List;
+import org.jmolecules.architecture.onion.simplified.ApplicationRing;
 import org.springframework.stereotype.Component;
 
+@ApplicationRing
 @Component
 public class StreamResolverRegistry {
 
@@ -21,10 +24,10 @@ public class StreamResolverRegistry {
     }
 
     public StreamResolver resolverFor(Track track) {
-        if (track.sourceUrl() == null) {
-            throw new NoStreamResolverException(track.id());
+        if (track instanceof StreamTrack streamTrack) {
+            return resolverFor(streamTrack.sourceUrl());
         }
-        return resolverFor(track.sourceUrl());
+        throw new NoStreamResolverException(track.id());
     }
 
     public static class NoStreamResolverException extends RuntimeException {

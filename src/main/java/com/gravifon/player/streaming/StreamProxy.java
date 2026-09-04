@@ -1,4 +1,4 @@
-package com.gravifon.player.registry.stream;
+package com.gravifon.player.streaming;
 
 import com.gravifon.player.registry.model.Track;
 import jakarta.servlet.http.HttpServletRequest;

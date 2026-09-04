@@ -9,10 +9,8 @@ import com.gravifon.player.playback.repository.JpaPlaybackStateRepository;
 import com.gravifon.player.playlist.model.Playlist;
 import com.gravifon.player.playlist.repository.JpaPlaylistRepository;
 import com.gravifon.player.registry.model.Track;
-import com.gravifon.player.registry.model.TrackKind;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.repository.JpaTrackRepository;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -34,7 +32,6 @@ import org.springframework.test.context.DynamicPropertySource;
 class PersistenceRepositoryDataJpaTest {
 
     private static final String CONFIG_DIR = "/tmp/gravifon-jpa-test-" + System.nanoTime();
-    private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
 
     @Autowired
     private JpaTrackRepository tracks;
@@ -59,6 +56,11 @@ class PersistenceRepositoryDataJpaTest {
         assertThat(saved.metadata()).containsEntry("GENRE", List.of("ambient", "downtempo"));
         assertThat(tracks.findById("track-1")).get().satisfies(reloaded ->
                 assertThat(reloaded.metadata()).containsEntry("GENRE", List.of("ambient", "downtempo")));
+        assertThat(tracks.findById(com.gravifon.player.registry.model.TrackId.of("track-1"))).isPresent();
+        assertThat(tracks.existsById("track-1")).isTrue();
+        assertThat(tracks.existsById(com.gravifon.player.registry.model.TrackId.of("track-1"))).isTrue();
+        assertThat(tracks.existsById("non-existent")).isFalse();
+        assertThat(tracks.findAllById(List.of("track-1", "non-existent"))).hasSize(1);
     }
 
     @Test
@@ -66,7 +68,7 @@ class PersistenceRepositoryDataJpaTest {
         tracks.save(fileTrack("track-1"));
         tracks.save(fileTrack("track-2"));
         Playlist initial = playlists.save(new Playlist("playlist-1", "Mix", List.of("track-2", "track-1")));
-        Playlist updated = playlists.save(new Playlist("playlist-1", "Renamed", List.of("track-1"), PlaybackMode.RANDOM));
+        playlists.save(new Playlist("playlist-1", "Renamed", List.of("track-1"), PlaybackMode.RANDOM));
 
         assertThat(initial.trackIds()).containsExactly("track-2", "track-1");
         assertThat(playlists.findById("playlist-1")).get().satisfies(reloaded -> {
@@ -74,6 +76,7 @@ class PersistenceRepositoryDataJpaTest {
             assertThat(reloaded.trackIds()).containsExactly("track-1");
             assertThat(reloaded.playbackMode()).isEqualTo(PlaybackMode.RANDOM);
         });
+        assertThat(playlists.findById(com.gravifon.player.playlist.model.PlaylistId.of("playlist-1"))).isPresent();
     }
 
     @Test
@@ -101,8 +104,8 @@ class PersistenceRepositoryDataJpaTest {
     }
 
     private Track fileTrack(String id) {
-        return new Track(id, TrackKind.FILE,
+        return new com.gravifon.player.registry.model.FileTrack(id,
                 Map.of("GENRE", List.of("ambient", "downtempo")), 120L,
-                TrackState.healthy(), id + ".mp3", "mp3", null, null, null);
+                TrackState.healthy(), id + ".mp3", "mp3");
     }
 }

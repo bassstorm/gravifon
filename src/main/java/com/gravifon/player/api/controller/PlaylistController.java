@@ -18,21 +18,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/playlists")
+@RequiredArgsConstructor
 public class PlaylistController {
 
     private final PlaylistService playlistService;
     private final PlaybackService playbackService;
     private final StreamTrackRegistrar streamTrackRegistrar;
-
-    public PlaylistController(PlaylistService playlistService, PlaybackService playbackService,
-                              StreamTrackRegistrar streamTrackRegistrar) {
-        this.playlistService = playlistService;
-        this.playbackService = playbackService;
-        this.streamTrackRegistrar = streamTrackRegistrar;
-    }
 
     @GetMapping
     public List<PlaylistResponse> listPlaylists() {

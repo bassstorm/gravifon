@@ -8,7 +8,6 @@ import com.gravifon.player.playback.service.PlaybackService;
 import com.gravifon.player.playlist.model.Playlist;
 import com.gravifon.player.playlist.repository.PlaylistRepository;
 import com.gravifon.player.registry.model.Track;
-import com.gravifon.player.registry.model.TrackKind;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.repository.TrackRepository;
 import java.nio.file.Files;
@@ -40,8 +39,8 @@ class PlaybackRestartIntegrationTest {
             TrackRepository tracks = first.getBean(TrackRepository.class);
             PlaylistRepository playlists = first.getBean(PlaylistRepository.class);
             PlaybackStateRepository states = first.getBean(PlaybackStateRepository.class);
-            Track track = tracks.save(new Track("t1", TrackKind.FILE, Map.of(), 180L, TrackState.healthy(),
-                    "track.mp3", "mp3", null, null, null));
+            Track track = tracks.save(new com.gravifon.player.registry.model.FileTrack("t1", Map.of(), 180L, TrackState.healthy(),
+                    "track.mp3", "mp3"));
             Playlist playlist = playlists.save(new Playlist("p1", "Playlist", List.of(track.id()), PlaybackMode.SEQUENTIAL));
             states.save("default", new PlaybackState(playlist.id(), track.id(), PlaybackMode.SEQUENTIAL,
                     TransportState.PLAYING, 42), "REPORTED");

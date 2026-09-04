@@ -2,7 +2,6 @@ package com.gravifon.player.api.controller;
 
 import com.gravifon.player.api.error.ApiExceptionHandler;
 import com.gravifon.player.registry.model.Track;
-import com.gravifon.player.registry.model.TrackKind;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.service.TrackRegistry;
 import com.gravifon.player.observability.CorrelationIdFilter;
@@ -34,8 +33,8 @@ class TrackControllerWebMvcTest {
 
     @Test
     void listTracks_returnsTrackDtosAndPreservesCorrelationHeader() throws Exception {
-        Track track = new Track("track-1", TrackKind.FILE, java.util.Map.of(), 123L, TrackState.healthy(),
-            "a.mp3", "mp3", null, null, null);
+        Track track = new com.gravifon.player.registry.model.FileTrack("track-1", java.util.Map.of(), 123L, TrackState.healthy(),
+            "a.mp3", "mp3");
         when(trackRegistry.listTracks()).thenReturn(List.of(track));
 
         mockMvc.perform(get("/api/tracks")

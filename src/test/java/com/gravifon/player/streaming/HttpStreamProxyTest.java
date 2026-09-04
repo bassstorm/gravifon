@@ -1,8 +1,8 @@
-package com.gravifon.player.registry.stream;
+package com.gravifon.player.streaming;
 
-import com.gravifon.player.registry.model.Track;
-import com.gravifon.player.registry.model.TrackKind;
+import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.model.TrackState;
+import com.gravifon.player.registry.stream.StreamRefreshService;
 import java.io.ByteArrayOutputStream;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
@@ -27,8 +27,8 @@ class HttpStreamProxyTest {
     private final HttpClient client = mock(HttpClient.class);
     private final StreamRefreshService refreshService = mock(StreamRefreshService.class);
     private final HttpStreamProxy proxy = new HttpStreamProxy(client, refreshService);
-    private final Track track = new Track("t1", TrackKind.STREAM, Map.of(), null, TrackState.healthy(),
-            null, "mp3", "https://source", "https://stream", Instant.now().plusSeconds(60));
+    private final StreamTrack track = new StreamTrack("t1", Map.of(), null, TrackState.healthy(),
+            "https://source", "https://stream", Instant.now().plusSeconds(60));
 
     @Test
     void forwardsRangeAndUpstreamPartialResponse() throws Exception {

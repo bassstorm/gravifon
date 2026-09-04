@@ -10,8 +10,10 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
+import org.jmolecules.architecture.onion.simplified.InfrastructureRing;
 import org.springframework.stereotype.Component;
 
+@InfrastructureRing
 @Slf4j
 @Component
 public class FileLibraryScanner implements LibraryScanner {

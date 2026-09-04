@@ -97,13 +97,19 @@ class PlaylistServiceTest {
         TrackRepository repository = mock(TrackRepository.class);
         List<Track> storedTracks = new java.util.ArrayList<>();
         for (String id : ids) {
-            Track track = new Track(id,
-                    com.gravifon.player.registry.model.TrackKind.FILE, Map.of(), 1L,
-                    com.gravifon.player.registry.model.TrackState.healthy(), id + ".mp3", "mp3", null, null, null);
+            Track track = new com.gravifon.player.registry.model.FileTrack(id,
+                    Map.of(), 1L,
+                    com.gravifon.player.registry.model.TrackState.healthy(), id + ".mp3", "mp3");
             storedTracks.add(track);
             when(repository.findById(id)).thenReturn(Optional.of(track));
         }
         when(repository.findAll()).thenReturn(storedTracks);
+        when(repository.findAllById(any(Iterable.class))).thenAnswer(invocation -> {
+            Iterable<String> requestedIds = invocation.getArgument(0);
+            List<String> idList = new java.util.ArrayList<>();
+            requestedIds.forEach(idList::add);
+            return storedTracks.stream().filter(t -> idList.contains(t.id())).toList();
+        });
         return repository;
     }
 }

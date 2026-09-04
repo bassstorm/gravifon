@@ -12,9 +12,11 @@ import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.TagField;
+import org.jmolecules.architecture.onion.simplified.InfrastructureRing;
 import org.springframework.stereotype.Component;
 import lombok.extern.slf4j.Slf4j;
 
+@InfrastructureRing
 @Slf4j
 @Component
 public class JaudiotaggerMetadataExtractor implements MetadataExtractor {

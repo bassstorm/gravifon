@@ -3,7 +3,9 @@ package com.gravifon.player.registry.scan;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import org.jmolecules.architecture.onion.simplified.DomainRing;
 
+@DomainRing
 public interface LibraryScanner {
 
     List<ScanFile> scan(Path root);

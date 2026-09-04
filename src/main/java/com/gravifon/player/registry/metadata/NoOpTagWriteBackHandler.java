@@ -4,8 +4,10 @@ import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackKind;
 import java.util.List;
 import java.util.Map;
+import org.jmolecules.architecture.onion.simplified.InfrastructureRing;
 import org.springframework.stereotype.Component;
 
+@InfrastructureRing
 @Component
 public class NoOpTagWriteBackHandler implements TagWriteBackHandler {
     @Override

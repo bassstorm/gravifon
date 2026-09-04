@@ -1,5 +1,7 @@
 package com.gravifon.player.api.model;
 
+import com.gravifon.player.registry.model.FileTrack;
+import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackKind;
 import com.gravifon.player.registry.model.TrackState;
@@ -19,9 +21,15 @@ public record TrackResponse(
         Instant expiresAfter
 ) {
     public static TrackResponse from(Track track) {
-        String filename = track.relPath() == null ? null : java.nio.file.Path.of(track.relPath()).getFileName().toString();
-        return new TrackResponse(track.id(), filename, track.kind(), track.metadata(), track.format(), track.durationSeconds(),
-            track.state(), track.sourceUrl(), track.expiresAfter());
+        return switch (track) {
+            case FileTrack file -> {
+                String filename = file.relPath() == null ? null : java.nio.file.Path.of(file.relPath()).getFileName().toString();
+                yield new TrackResponse(file.id(), filename, file.kind(), file.metadata(), file.format(),
+                        file.durationSeconds(), file.state(), null, null);
+            }
+            case StreamTrack stream -> new TrackResponse(stream.id(), null, stream.kind(), stream.metadata(),
+                    null, stream.durationSeconds(), stream.state(), stream.sourceUrl(), stream.expiresAfter());
+        };
     }
 }
 

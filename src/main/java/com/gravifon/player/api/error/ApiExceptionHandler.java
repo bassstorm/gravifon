@@ -1,6 +1,7 @@
 package com.gravifon.player.api.error;
 
 import com.gravifon.player.api.model.ApiErrorResponse;
+import com.gravifon.player.error.ResourceNotFoundException;
 import com.gravifon.player.observability.CorrelationIdFilter;
 import java.io.IOException;
 import jakarta.servlet.http.HttpServletRequest;

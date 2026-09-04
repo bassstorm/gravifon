@@ -5,7 +5,9 @@ import com.gravifon.player.registry.model.Track;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import org.jmolecules.architecture.onion.simplified.DomainRing;
 
+@DomainRing
 public interface StreamResolver {
 
     boolean supports(String sourceUrl);

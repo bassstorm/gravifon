@@ -1,6 +1,8 @@
-package com.gravifon.player.registry.stream;
+package com.gravifon.player.streaming;
 
+import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.stream.StreamRefreshService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -29,8 +31,11 @@ public class HttpStreamProxy implements StreamProxy {
 
     @Override
     public void proxy(Track track, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        track = refreshService.ensureFresh(track);
-        HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(track.streamUrl())).GET()
+        if (!(track instanceof StreamTrack streamTrack)) {
+            throw new IllegalArgumentException("Cannot proxy non-stream track: " + track.id());
+        }
+        streamTrack = refreshService.ensureFresh(streamTrack);
+        HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(streamTrack.streamUrl())).GET()
                 .timeout(Duration.ofSeconds(15));
         String range = request.getHeader("Range");
         if (range != null && !range.isBlank()) {

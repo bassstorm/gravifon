@@ -5,13 +5,11 @@ import com.gravifon.player.playback.model.TransportState;
 import com.gravifon.player.playlist.model.Playlist;
 import com.gravifon.player.playlist.service.PlaylistService;
 import com.gravifon.player.playback.repository.PlaybackStateRepository;
-import com.gravifon.player.registry.model.TrackKind;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.repository.TrackRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -24,14 +22,20 @@ class PlaybackServiceTest {
 
     private PlaylistService playlistService;
     private TrackRepository trackRepository;
-    private Random random;
+    private PlaybackStateRepository stateRepository;
+    private TrackSelectorRegistry selectorRegistry;
     private PlaybackService playbackService;
 
     @BeforeEach
     void setUp() {
         playlistService = Mockito.mock(PlaylistService.class);
         trackRepository = Mockito.mock(TrackRepository.class);
-        random = Mockito.mock(Random.class);
+        stateRepository = Mockito.mock(PlaybackStateRepository.class);
+        when(stateRepository.find(Mockito.any())).thenReturn(Optional.empty());
+        selectorRegistry = new TrackSelectorRegistry(List.of(
+                new SequentialTrackSelector(),
+                new RandomTrackSelector()
+        ));
 
         Playlist active = new Playlist("all-tracks", "All Tracks", List.of("t1", "t2"));
         when(playlistService.getActive()).thenReturn(active);
@@ -39,7 +43,7 @@ class PlaybackServiceTest {
         when(trackRepository.findById("t1")).thenReturn(Optional.of(track("t1", 120L)));
         when(trackRepository.findById("t2")).thenReturn(Optional.of(track("t2", 60L)));
 
-        playbackService = new PlaybackService(playlistService, trackRepository, random, null);
+        playbackService = new PlaybackService(playlistService, trackRepository, stateRepository, selectorRegistry);
     }
 
     @Test
@@ -96,16 +100,14 @@ class PlaybackServiceTest {
     }
 
     @Test
-    void randomMode_selectsPureRandomEachStep() {
-        when(random.nextInt(2)).thenReturn(1, 1);
-
+    void randomMode_selectsValidTrackFromActivePlaylist() {
         playbackService.setMode(PlaybackMode.RANDOM);
 
         var first = playbackService.nextTrack();
         var second = playbackService.nextTrack();
 
-        assertThat(first.currentTrackId()).isEqualTo("t2");
-        assertThat(second.currentTrackId()).isEqualTo("t2");
+        assertThat(List.of("t1", "t2")).contains(first.currentTrackId());
+        assertThat(List.of("t1", "t2")).contains(second.currentTrackId());
     }
 
     @Test
@@ -147,9 +149,9 @@ class PlaybackServiceTest {
         Playlist playlist = new Playlist("p1", "Playlist", List.of("t1"), PlaybackMode.RANDOM);
         when(persistentPlaylists.getActive()).thenReturn(playlist);
         when(persistentPlaylists.select("p1")).thenReturn(playlist);
-        when(tracks.findById("t1")).thenReturn(Optional.of(new com.gravifon.player.registry.model.Track(
-                "t1", TrackKind.FILE, Map.of(), 120L, TrackState.healthy(), "t1.mp3", "mp3", null, null, null)));
-        PlaybackService persistentPlayback = new PlaybackService(persistentPlaylists, tracks, states);
+        when(tracks.findById("t1")).thenReturn(Optional.of(new com.gravifon.player.registry.model.FileTrack(
+                "t1", Map.of(), 120L, TrackState.healthy(), "t1.mp3", "mp3")));
+        PlaybackService persistentPlayback = new PlaybackService(persistentPlaylists, tracks, states, selectorRegistry);
 
         assertThat(persistentPlayback.selectPlaylist("p1").playbackMode()).isEqualTo(PlaybackMode.RANDOM);
         persistentPlayback.setMode(PlaybackMode.SEQUENTIAL);
@@ -170,7 +172,7 @@ class PlaybackServiceTest {
         when(persistentPlaylists.getActive()).thenReturn(playlist);
         when(tracks.findById("t1")).thenReturn(Optional.of(track("t1", 120L)));
 
-        PlaybackService restored = new PlaybackService(persistentPlaylists, tracks, states);
+        PlaybackService restored = new PlaybackService(persistentPlaylists, tracks, states, selectorRegistry);
         restored.restoreState();
 
         assertThat(restored.getState().transportState()).isEqualTo(TransportState.PAUSED);
@@ -179,8 +181,8 @@ class PlaybackServiceTest {
     }
 
     private com.gravifon.player.registry.model.Track track(String id, long duration) {
-        return new com.gravifon.player.registry.model.Track(id,
-                com.gravifon.player.registry.model.TrackKind.FILE, Map.of(), duration,
-                com.gravifon.player.registry.model.TrackState.healthy(), id + ".mp3", "mp3", null, null, null);
+        return new com.gravifon.player.registry.model.FileTrack(id,
+                Map.of(), duration,
+                com.gravifon.player.registry.model.TrackState.healthy(), id + ".mp3", "mp3");
     }
 }

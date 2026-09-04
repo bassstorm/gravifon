@@ -2,10 +2,9 @@ package com.gravifon.player.api.controller;
 
 import com.gravifon.player.api.error.ApiExceptionHandler;
 import com.gravifon.player.registry.model.Track;
-import com.gravifon.player.registry.model.TrackKind;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.service.TrackRegistry;
-import com.gravifon.player.registry.stream.StreamProxy;
+import com.gravifon.player.streaming.StreamProxy;
 import com.gravifon.player.observability.CorrelationIdFilter;
 import com.gravifon.player.playback.service.PlaybackService;
 import java.nio.file.Files;
@@ -21,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = AudioStreamingController.class)
-@Import({ApiExceptionHandler.class, CorrelationIdFilter.class})
+@Import({ ApiExceptionHandler.class, CorrelationIdFilter.class, com.gravifon.player.streaming.AudioStreamingService.class })
 class AudioStreamingControllerWebMvcTest {
 
     @Autowired
@@ -59,7 +59,7 @@ class AudioStreamingControllerWebMvcTest {
                 .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "audio/mpeg"))
                 .andExpect(content().bytes("0123456789".getBytes()));
 
-            org.mockito.Mockito.verify(playbackService).observeStream("t1", 9, 10);
+        verify(playbackService).observeStream("t1", 9, 10);
     }
 
     @Test
@@ -73,7 +73,7 @@ class AudioStreamingControllerWebMvcTest {
                 .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes 2-5/10"))
                 .andExpect(content().bytes("2345".getBytes()));
 
-            org.mockito.Mockito.verify(playbackService).observeStream("t1", 5, 10);
+        verify(playbackService).observeStream("t1", 5, 10);
     }
 
     @Test
@@ -117,8 +117,7 @@ class AudioStreamingControllerWebMvcTest {
     }
 
     private Track fileTrack(String id, String format) {
-        return new Track(id, TrackKind.FILE, java.util.Map.of(), null, TrackState.healthy(),
-                id + "." + format, format, null, null, null);
+        return new com.gravifon.player.registry.model.FileTrack(id, java.util.Map.of(), null, TrackState.healthy(),
+                id + "." + format, format);
     }
 }
-

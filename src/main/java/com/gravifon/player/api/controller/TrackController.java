@@ -1,7 +1,7 @@
 package com.gravifon.player.api.controller;
 
-import com.gravifon.player.api.error.ResourceNotFoundException;
 import com.gravifon.player.api.model.TrackResponse;
+import com.gravifon.player.error.ResourceNotFoundException;
 import com.gravifon.player.registry.service.TrackRegistry;
 import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,16 +11,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/tracks")
+@RequiredArgsConstructor
 public class TrackController {
 
     private final TrackRegistry trackRegistry;
-
-    public TrackController(TrackRegistry trackRegistry) {
-        this.trackRegistry = trackRegistry;
-    }
 
     @GetMapping
     public List<TrackResponse> listTracks() {

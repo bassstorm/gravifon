@@ -1,7 +1,6 @@
 package com.gravifon.player.api.model;
 
 import com.gravifon.player.registry.model.Track;
-import com.gravifon.player.registry.model.TrackKind;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.playback.model.PlaybackMode;
 import com.gravifon.player.playback.model.PlaybackState;
@@ -17,8 +16,8 @@ class ApiModelMappingTest {
 
     @Test
     void trackResponse_fromMapsFields() {
-        Track track = new Track("track-1", TrackKind.FILE, Map.of(), 42L, TrackState.healthy(),
-            "a.mp3", "mp3", null, null, null);
+        Track track = new com.gravifon.player.registry.model.FileTrack("track-1", Map.of(), 42L, TrackState.healthy(),
+            "a.mp3", "mp3");
 
         TrackResponse response = TrackResponse.from(track);
 

@@ -3,7 +3,9 @@ package com.gravifon.player.registry.metadata;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import org.jmolecules.architecture.onion.simplified.DomainRing;
 
+@DomainRing
 public interface MetadataExtractor {
 
     ExtractedMetadata extract(Path path);
