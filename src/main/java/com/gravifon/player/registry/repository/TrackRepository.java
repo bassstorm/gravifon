@@ -8,7 +8,6 @@ import org.jmolecules.architecture.onion.simplified.DomainRing;
 
 @DomainRing
 public interface TrackRepository {
-
     List<Track> findAll();
 
     Optional<Track> findById(String id);

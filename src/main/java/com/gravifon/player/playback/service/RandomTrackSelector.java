@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class RandomTrackSelector implements TrackSelector {
-
     @Override
     public PlaybackMode mode() {
         return PlaybackMode.RANDOM;

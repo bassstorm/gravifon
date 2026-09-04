@@ -18,7 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 class JaudiotaggerMetadataExtractorTest {
-
     @Test
     void malformedAudioRemainsAvailableWithUnknownDuration() {
         MetadataExtractor.ExtractedMetadata metadata =
@@ -38,7 +37,9 @@ class JaudiotaggerMetadataExtractorTest {
         when(header.getTrackLength()).thenReturn(45);
 
         try (MockedStatic<AudioFileIO> audioFiles = org.mockito.Mockito.mockStatic(AudioFileIO.class)) {
-            audioFiles.when(() -> AudioFileIO.read(any())).thenReturn(audioFile);
+            audioFiles
+                .when(() -> AudioFileIO.read(any()))
+                .thenReturn(audioFile);
 
             MetadataExtractor.ExtractedMetadata metadata =
                     new JaudiotaggerMetadataExtractor().extract(Path.of("untagged.mp3"));
@@ -61,14 +62,17 @@ class JaudiotaggerMetadataExtractorTest {
         when(header.getTrackLength()).thenReturn(90);
         when(tag.getFields(FieldKey.GENRE)).thenReturn(List.of(first, second));
         when(tag.getFields(any(FieldKey.class)))
-                .thenAnswer(invocation ->
-                        invocation.getArgument(0) == FieldKey.GENRE ? List.of(first, second) : Collections.emptyList());
+            .thenAnswer(invocation -> invocation.getArgument(0) == FieldKey.GENRE
+                    ? List.of(first, second)
+                    : Collections.emptyList());
         when(tag.getFields()).thenReturn(Collections.emptyIterator());
         when(first.toString()).thenReturn("ambient");
         when(second.toString()).thenReturn("downtempo");
 
         try (MockedStatic<AudioFileIO> audioFiles = org.mockito.Mockito.mockStatic(AudioFileIO.class)) {
-            audioFiles.when(() -> AudioFileIO.read(any())).thenReturn(audioFile);
+            audioFiles
+                .when(() -> AudioFileIO.read(any()))
+                .thenReturn(audioFile);
 
             MetadataExtractor.ExtractedMetadata metadata =
                     new JaudiotaggerMetadataExtractor().extract(Path.of("tagged.mp3"));

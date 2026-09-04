@@ -15,7 +15,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Slf4j
 @Component
 public class CorrelationIdFilter extends OncePerRequestFilter {
-
     public static final String CORRELATION_ID_HEADER = "CorrelationId";
     public static final String CORRELATION_ID_QUERY_PARAM = "cid";
     public static final String CORRELATION_ID_QUERY_PARAM_ALIAS = "CorrelationId";
@@ -24,11 +23,13 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+            throws ServletException,
+            IOException {
         String incoming = request.getHeader(CORRELATION_ID_HEADER);
         String incomingFromQuery = firstNonBlank(
                 request.getParameter(CORRELATION_ID_QUERY_PARAM),
-                request.getParameter(CORRELATION_ID_QUERY_PARAM_ALIAS));
+                request.getParameter(CORRELATION_ID_QUERY_PARAM_ALIAS)
+        );
         String correlationId;
         if (StringUtils.hasText(incoming)) {
             correlationId = incoming;
@@ -40,12 +41,14 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
                 log.warn(
                         "Missing CorrelationId header/query for API request {}. Generated fallback correlation id: {}",
                         request.getRequestURI(),
-                        correlationId);
+                        correlationId
+                );
             } else {
                 log.debug(
                         "Missing CorrelationId for non-API request {}. Generated fallback correlation id: {}",
                         request.getRequestURI(),
-                        correlationId);
+                        correlationId
+                );
             }
         }
 

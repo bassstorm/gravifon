@@ -17,7 +17,6 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class FileLibraryScanner implements LibraryScanner {
-
     private static final Set<String> SUPPORTED_EXTENSIONS = Set.of("flac", "mp3", "ogg");
     private final MetadataExtractor metadataExtractor;
 
@@ -31,11 +30,12 @@ public class FileLibraryScanner implements LibraryScanner {
             return List.of();
         }
         try (Stream<Path> paths = Files.walk(root)) {
-            return paths.filter(Files::isRegularFile)
-                    .filter(this::isSupported)
-                    .map(path -> toScanFile(root, path))
-                    .sorted(Comparator.comparing(ScanFile::relativePath))
-                    .toList();
+            return paths
+                .filter(Files::isRegularFile)
+                .filter(this::isSupported)
+                .map(path -> toScanFile(root, path))
+                .sorted(Comparator.comparing(ScanFile::relativePath))
+                .toList();
         } catch (IOException exception) {
             throw new IllegalStateException("Failed to scan music root: " + root, exception);
         }
@@ -46,7 +46,12 @@ public class FileLibraryScanner implements LibraryScanner {
         try {
             MetadataExtractor.ExtractedMetadata metadata = metadataExtractor.extract(path);
             return new ScanFile(
-                    relativePath, extension(path), metadata.readable(), metadata.values(), metadata.durationSeconds());
+                    relativePath,
+                    extension(path),
+                    metadata.readable(),
+                    metadata.values(),
+                    metadata.durationSeconds()
+            );
         } catch (RuntimeException exception) {
             log.warn("Unable to read file {} during scan: {}", path, exception.toString());
             return new ScanFile(relativePath, extension(path), false, java.util.Map.of(), null);
@@ -60,8 +65,6 @@ public class FileLibraryScanner implements LibraryScanner {
     private String extension(Path path) {
         String filename = path.getFileName().toString();
         int dot = filename.lastIndexOf('.');
-        return dot > 0 && dot < filename.length() - 1
-                ? filename.substring(dot + 1).toLowerCase(Locale.ROOT)
-                : "";
+        return dot > 0 && dot < filename.length() - 1 ? filename.substring(dot + 1).toLowerCase(Locale.ROOT) : "";
     }
 }

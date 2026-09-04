@@ -20,7 +20,6 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class JaudiotaggerMetadataExtractor implements MetadataExtractor {
-
     private static final Map<FieldKey, String> STANDARD_KEYS = Map.ofEntries(
             Map.entry(FieldKey.ARTIST, "ARTIST"),
             Map.entry(FieldKey.ALBUM, "ALBUM"),
@@ -29,7 +28,8 @@ public class JaudiotaggerMetadataExtractor implements MetadataExtractor {
             Map.entry(FieldKey.YEAR, "DATE"),
             Map.entry(FieldKey.TRACK, "TRACK"),
             Map.entry(FieldKey.TRACK_TOTAL, "TRACK_TOTAL"),
-            Map.entry(FieldKey.GENRE, "GENRE"));
+            Map.entry(FieldKey.GENRE, "GENRE")
+    );
 
     @Override
     public ExtractedMetadata extract(Path path) {
@@ -46,8 +46,9 @@ public class JaudiotaggerMetadataExtractor implements MetadataExtractor {
                     TagField field = fields.next();
                     String key = field.getId().toUpperCase(Locale.ROOT);
                     if (!values.containsKey(key)) {
-                        values.computeIfAbsent(key, ignored -> new ArrayList<>())
-                                .add(rawValue(field));
+                        values
+                            .computeIfAbsent(key, ignored -> new ArrayList<>())
+                            .add(rawValue(field));
                     }
                 }
             }
@@ -57,7 +58,8 @@ public class JaudiotaggerMetadataExtractor implements MetadataExtractor {
             log.warn(
                     "Unable to extract metadata for {}. Keeping track with unknown metadata. Cause: {}",
                     path,
-                    exception.toString());
+                    exception.toString()
+            );
             return new ExtractedMetadata(Map.of(), null, false);
         }
     }
@@ -66,7 +68,9 @@ public class JaudiotaggerMetadataExtractor implements MetadataExtractor {
         for (TagField field : fields) {
             String value = field.toString();
             if (!value.isBlank()) {
-                values.computeIfAbsent(key, ignored -> new ArrayList<>()).add(value);
+                values
+                    .computeIfAbsent(key, ignored -> new ArrayList<>())
+                    .add(value);
             }
         }
     }

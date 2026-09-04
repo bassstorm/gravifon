@@ -8,7 +8,6 @@ import org.jmolecules.architecture.onion.simplified.DomainRing;
 
 @DomainRing
 public interface PlaylistRepository {
-
     List<Playlist> findAll();
 
     Optional<Playlist> findById(String id);

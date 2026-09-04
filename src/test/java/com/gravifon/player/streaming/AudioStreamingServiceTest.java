@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
 
 class AudioStreamingServiceTest {
-
     private final PlaybackService playbackService = mock(PlaybackService.class);
     private final AudioStreamingService service = new AudioStreamingService(playbackService);
 

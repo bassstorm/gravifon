@@ -4,7 +4,6 @@ import java.util.Objects;
 import org.jmolecules.ddd.types.Identifier;
 
 public record TrackId(String value) implements Identifier {
-
     public TrackId {
         Objects.requireNonNull(value, "value");
         if (value.isBlank()) {

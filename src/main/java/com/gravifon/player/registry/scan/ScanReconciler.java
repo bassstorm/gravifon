@@ -15,33 +15,37 @@ import org.springframework.stereotype.Component;
 @ApplicationRing
 @Component
 public class ScanReconciler {
-
     public List<Decision> reconcile(
-            List<Track> existing, List<LibraryScanner.ScanFile> scanned, Set<String> referencedTrackIds) {
-        Map<String, LibraryScanner.ScanFile> filesById = scanned.stream()
-                .collect(Collectors.toMap(
-                        file -> TrackIdentity.forFile(Path.of(file.relativePath())), Function.identity()));
-        Map<String, Track> existingFilesById = existing.stream()
-                .filter(track -> track.kind() == TrackKind.FILE)
-                .collect(Collectors.toMap(Track::id, Function.identity(), (first, second) -> first));
+            List<Track> existing,
+            List<LibraryScanner.ScanFile> scanned,
+            Set<String> referencedTrackIds
+    ) {
+        Map<String, LibraryScanner.ScanFile> filesById = scanned
+            .stream()
+            .collect(Collectors.toMap(file -> TrackIdentity.forFile(Path.of(file.relativePath())), Function.identity()));
+        Map<String, Track> existingFilesById = existing
+            .stream()
+            .filter(track -> track.kind() == TrackKind.FILE)
+            .collect(Collectors.toMap(Track::id, Function.identity(), (first, second) -> first));
 
-        List<Decision> decisions = existingFilesById.values().stream()
-                .filter(track -> !filesById.containsKey(track.id()))
-                .map(track -> referencedTrackIds.contains(track.id())
-                        ? new Decision(DecisionType.TOMBSTONE, track.id(), null)
-                        : new Decision(DecisionType.REMOVE, track.id(), null))
-                .collect(Collectors.toList());
+        List<Decision> decisions = existingFilesById
+            .values()
+            .stream()
+            .filter(track -> !filesById.containsKey(track.id()))
+            .map(track -> referencedTrackIds.contains(track.id())
+                    ? new Decision(DecisionType.TOMBSTONE, track.id(), null)
+                    : new Decision(DecisionType.REMOVE, track.id(), null))
+            .collect(Collectors.toList());
 
-        decisions.addAll(scanned.stream()
-                .map(file -> {
-                    String fileId = TrackIdentity.forFile(Path.of(file.relativePath()));
-                    Track existingTrack = existingFilesById.get(fileId);
-                    return new Decision(
-                            existingTrack == null ? DecisionType.CREATE : DecisionType.REFRESH,
-                            existingTrack == null ? null : existingTrack.id(),
-                            file);
-                })
-                .toList());
+        decisions.addAll(scanned.stream().map(file -> {
+            String fileId = TrackIdentity.forFile(Path.of(file.relativePath()));
+            Track existingTrack = existingFilesById.get(fileId);
+            return new Decision(
+                    existingTrack == null ? DecisionType.CREATE : DecisionType.REFRESH,
+                    existingTrack == null ? null : existingTrack.id(),
+                    file
+            );
+        }).toList());
 
         return List.copyOf(decisions);
     }

@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class TrackRegistryTest {
-
     @Test
     void delegatesRefreshToScanCoordinator() {
         GravifonProperties properties = new GravifonProperties();
@@ -43,7 +42,6 @@ class TrackRegistryTest {
 
         TrackRegistry registry = new TrackRegistry(properties, repository, coordinator, List.of());
 
-        assertThat(registry.resolveTrackPath("t1"))
-                .contains(musicRoot.resolve("song.mp3").normalize());
+        assertThat(registry.resolveTrackPath("t1")).contains(musicRoot.resolve("song.mp3").normalize());
     }
 }

@@ -22,19 +22,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class LibraryScanCoordinatorTest {
-
     @Test
     void scanIndexesSupportedNestedFilesWithRelativeIdentity(@TempDir Path musicRoot) {
         GravifonProperties properties = new GravifonProperties();
         properties.setMusicRoot(musicRoot);
         LibraryScanner scanner = mock(LibraryScanner.class);
         when(scanner.scan(any()))
-                .thenReturn(
-                        List.of(new LibraryScanner.ScanFile("albums/classic/track.mp3", "mp3", true, Map.of(), 120L)));
+            .thenReturn(List.of(new LibraryScanner.ScanFile("albums/classic/track.mp3", "mp3", true, Map.of(), 120L)));
         TrackRepository repository = mock(TrackRepository.class);
         List<Track> stored = new ArrayList<>();
         when(repository.findAll()).thenAnswer(ignored -> List.copyOf(stored));
-        when(repository.findById(any(String.class))).thenAnswer(invocation -> stored.stream()
+        when(repository.findById(any(String.class)))
+            .thenAnswer(invocation -> stored
+                .stream()
                 .filter(track -> track.id().equals(invocation.getArgument(0)))
                 .findFirst());
         when(repository.save(any())).thenAnswer(invocation -> {
@@ -64,11 +64,13 @@ class LibraryScanCoordinatorTest {
                 new LibraryScanner.ScanFile("track.mp3", "mp3", true, Map.of("TITLE", List.of("Ready")), 42L);
         AtomicInteger scanCount = new AtomicInteger();
         when(scanner.scan(any()))
-                .thenAnswer(invocation -> scanCount.getAndIncrement() == 0 ? List.of(unreadable) : List.of(readable));
+            .thenAnswer(invocation -> scanCount.getAndIncrement() == 0 ? List.of(unreadable) : List.of(readable));
         TrackRepository repository = mock(TrackRepository.class);
         List<Track> stored = new ArrayList<>();
         when(repository.findAll()).thenAnswer(ignored -> List.copyOf(stored));
-        when(repository.findById(any(String.class))).thenAnswer(invocation -> stored.stream()
+        when(repository.findById(any(String.class)))
+            .thenAnswer(invocation -> stored
+                .stream()
                 .filter(track -> track.id().equals(invocation.getArgument(0)))
                 .findFirst());
         when(repository.save(any())).thenAnswer(invocation -> {

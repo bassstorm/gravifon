@@ -7,7 +7,6 @@ import org.jmolecules.architecture.onion.simplified.DomainRing;
 
 @DomainRing
 public interface LibraryScanner {
-
     List<ScanFile> scan(Path root);
 
     record ScanFile(
@@ -15,8 +14,8 @@ public interface LibraryScanner {
             String format,
             boolean readable,
             Map<String, List<String>> metadata,
-            Long durationSeconds) {
-
+            Long durationSeconds
+    ) {
         public ScanFile(String relativePath, String format, boolean readable, Long durationSeconds) {
             this(relativePath, format, readable, Map.of(), durationSeconds);
         }

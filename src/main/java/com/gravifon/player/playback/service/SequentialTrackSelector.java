@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SequentialTrackSelector implements TrackSelector {
-
     @Override
     public PlaybackMode mode() {
         return PlaybackMode.SEQUENTIAL;

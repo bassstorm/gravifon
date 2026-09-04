@@ -14,7 +14,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ApiModelMappingTest {
-
     @Test
     void trackResponse_fromMapsFields() {
         Track track = new FileTrack("track-1", Map.of(), 42L, TrackState.healthy(), "a.mp3", "mp3");

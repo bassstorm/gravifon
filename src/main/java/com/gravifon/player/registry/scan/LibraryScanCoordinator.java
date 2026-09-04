@@ -23,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class LibraryScanCoordinator {
-
     private final GravifonProperties properties;
     private final LibraryScanner scanner;
     private final TrackRepository trackRepository;
@@ -45,13 +44,22 @@ public class LibraryScanCoordinator {
         for (ScanReconciler.Decision decision : scanReconciler.reconcile(existing, scanner.scan(root), referenced)) {
             switch (decision.type()) {
                 case CREATE, REFRESH -> trackRepository.save(trackFrom(decision));
-                case TOMBSTONE -> trackRepository.findById(decision.trackId()).ifPresent(track -> {
-                    String missingPath = track instanceof FileTrack fileTrack ? fileTrack.relPath() : track.id();
-                    trackRepository.save(track.withState(new TrackState(
-                            true,
-                            new TrackError(
-                                    "SOURCE_MISSING", "File is missing: " + missingPath, Instant.now(), "SCAN"))));
-                });
+                case TOMBSTONE -> trackRepository
+                    .findById(decision.trackId())
+                    .ifPresent(track -> {
+                        String missingPath = track instanceof FileTrack fileTrack ? fileTrack.relPath() : track.id();
+                        trackRepository.save(track.withState(
+                                new TrackState(
+                                        true,
+                                        new TrackError(
+                                                "SOURCE_MISSING",
+                                                "File is missing: " + missingPath,
+                                                Instant.now(),
+                                                "SCAN"
+                                        )
+                                )
+                        ));
+                    });
                 case REMOVE -> trackRepository.deleteById(decision.trackId());
             }
         }
@@ -64,7 +72,12 @@ public class LibraryScanCoordinator {
                 : new TrackState(
                         true,
                         new TrackError(
-                                "READ_ERROR", "Unable to read file: " + file.relativePath(), Instant.now(), "SCAN"));
+                                "READ_ERROR",
+                                "Unable to read file: " + file.relativePath(),
+                                Instant.now(),
+                                "SCAN"
+                        )
+        );
         String id = decision.type() == ScanReconciler.DecisionType.CREATE
                 ? TrackIdentity.forFile(Path.of(file.relativePath()))
                 : decision.trackId();

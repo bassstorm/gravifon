@@ -26,7 +26,6 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class StreamRefreshService {
-
     private final StreamResolverRegistry resolverRegistry;
     private final TrackRegistry trackRegistry;
     private final TrackRepository trackRepository;
@@ -57,18 +56,19 @@ public class StreamRefreshService {
             scope.addAll(active.trackIds());
         }
         for (String trackId : scope) {
-            trackRepository.findById(trackId).ifPresent(track -> {
-                if (track instanceof StreamTrack streamTrack) {
-                    if (streamTrack.expiresAfter() == null
-                            || !streamTrack.expiresAfter().isAfter(threshold)) {
-                        try {
-                            ensureFresh(streamTrack, now);
-                        } catch (IOException ignored) {
-                            // Request-time fallback retries after a bounded scheduler attempt.
+            trackRepository
+                .findById(trackId)
+                .ifPresent(track -> {
+                    if (track instanceof StreamTrack streamTrack) {
+                        if (streamTrack.expiresAfter() == null || !streamTrack.expiresAfter().isAfter(threshold)) {
+                            try {
+                                ensureFresh(streamTrack, now);
+                            } catch (IOException ignored) {
+                                // Request-time fallback retries after a bounded scheduler attempt.
+                            }
                         }
                     }
-                }
-            });
+                });
         }
     }
 
@@ -85,8 +85,7 @@ public class StreamRefreshService {
         int currentIndex = active.trackIds().indexOf(state.currentTrackId());
         if (currentIndex >= 0 && !active.trackIds().isEmpty()) {
             scope.add(state.currentTrackId());
-            scope.add(
-                    active.trackIds().get((currentIndex + 1) % active.trackIds().size()));
+            scope.add(active.trackIds().get((currentIndex + 1) % active.trackIds().size()));
         }
     }
 
@@ -106,10 +105,10 @@ public class StreamRefreshService {
         }
         try {
             StreamTrack current = trackRegistry
-                    .findTrackById(track.id())
-                    .filter(StreamTrack.class::isInstance)
-                    .map(StreamTrack.class::cast)
-                    .orElse(track);
+                .findTrackById(track.id())
+                .filter(StreamTrack.class::isInstance)
+                .map(StreamTrack.class::cast)
+                .orElse(track);
             if (current.isStreamUrlFresh(evaluationTime)) {
                 refresh.complete(current);
                 return current;
@@ -118,12 +117,10 @@ public class StreamRefreshService {
             for (int attempt = 0; attempt < properties.getStreams().getRefreshMaxAttempts(); attempt++) {
                 try {
                     StreamResolver resolver = resolverRegistry.resolverFor(current);
-                    StreamResolver.ResolvedStream resolved = CompletableFuture.supplyAsync(
-                                    () -> resolver.refreshStream(current))
-                            .get(properties.getStreams().getRefreshTimeout().toMillis(), TimeUnit.MILLISECONDS);
-                    if (resolved == null
-                            || resolved.streamUrl() == null
-                            || resolved.streamUrl().isBlank()) {
+                    StreamResolver.ResolvedStream resolved = CompletableFuture
+                        .supplyAsync(() -> resolver.refreshStream(current))
+                        .get(properties.getStreams().getRefreshTimeout().toMillis(), TimeUnit.MILLISECONDS);
+                    if (resolved == null || resolved.streamUrl() == null || resolved.streamUrl().isBlank()) {
                         throw new IOException("Resolver returned no stream URL");
                     }
                     Track updated =
@@ -141,7 +138,8 @@ public class StreamRefreshService {
             IOException failure = fail(
                     current,
                     timedOut ? "Stream refresh timed out" : message,
-                    timedOut ? "STREAM_REFRESH_TIMEOUT" : "STREAM_UNREACHABLE");
+                    timedOut ? "STREAM_REFRESH_TIMEOUT" : "STREAM_UNREACHABLE"
+            );
             refresh.completeExceptionally(failure);
             throw failure;
         } finally {
@@ -151,8 +149,10 @@ public class StreamRefreshService {
 
     private StreamTrack await(CompletableFuture<StreamTrack> refresh) throws IOException {
         try {
-            long timeout = properties.getStreams().getRefreshTimeout().toMillis()
-                            * Math.max(1, properties.getStreams().getRefreshMaxAttempts())
+            long timeout = properties.getStreams().getRefreshTimeout().toMillis() * Math.max(
+                    1,
+                    properties.getStreams().getRefreshMaxAttempts()
+            )
                     + 1000;
             return refresh.get(timeout, TimeUnit.MILLISECONDS);
         } catch (Exception failure) {

@@ -22,12 +22,11 @@ import lombok.experimental.Accessors;
 public class PlaylistEntryEntity {
     @EmbeddedId
     @AttributeOverrides({
-        @AttributeOverride(name = "playlistId", column = @Column(name = "playlist_id")),
-        @AttributeOverride(name = "position", column = @Column(name = "position")),
-        @AttributeOverride(name = "trackId", column = @Column(name = "track_id"))
+            @AttributeOverride(name = "playlistId", column = @Column(name = "playlist_id")),
+            @AttributeOverride(name = "position", column = @Column(name = "position")),
+            @AttributeOverride(name = "trackId", column = @Column(name = "track_id"))
     })
     private PlaylistEntryId id;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "playlist_id", insertable = false, updatable = false)
     private PlaylistEntity playlist;

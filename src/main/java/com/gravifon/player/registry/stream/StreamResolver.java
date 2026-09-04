@@ -10,7 +10,6 @@ import org.jmolecules.architecture.onion.simplified.DomainRing;
 
 @DomainRing
 public interface StreamResolver {
-
     boolean supports(String sourceUrl);
 
     default SourceUrlNormalizer normalizer() {

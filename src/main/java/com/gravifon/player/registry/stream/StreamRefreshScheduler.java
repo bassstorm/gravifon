@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class StreamRefreshScheduler {
-
     private final StreamRefreshService refreshService;
 
     @Scheduled(fixedDelayString = "${gravifon.streams.refresh-interval:PT10M}", timeUnit = TimeUnit.MILLISECONDS)

@@ -11,7 +11,8 @@ public record PlaylistMutationRequest(
         List<String> reorder,
         List<String> add,
         List<String> remove,
-        PlaybackMode mode) {
+        PlaybackMode mode
+) {
     public PlaylistMutationRequest {
         trackIds = trackIds == null ? List.of() : List.copyOf(trackIds);
         sourceUrls = sourceUrls == null ? List.of() : List.copyOf(sourceUrls);

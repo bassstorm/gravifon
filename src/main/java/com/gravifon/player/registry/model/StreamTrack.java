@@ -13,16 +13,17 @@ public record StreamTrack(
         TrackState state,
         String sourceUrl,
         String streamUrl,
-        Instant expiresAfter)
-        implements Track {
-
+        Instant expiresAfter
+) implements Track {
     public StreamTrack {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(metadata, "metadata");
         Objects.requireNonNull(state, "state");
         Objects.requireNonNull(sourceUrl, "sourceUrl");
-        metadata = metadata.entrySet().stream()
-                .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, entry -> List.copyOf(entry.getValue())));
+        metadata = metadata
+            .entrySet()
+            .stream()
+            .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, entry -> List.copyOf(entry.getValue())));
     }
 
     public StreamTrack(
@@ -32,7 +33,8 @@ public record StreamTrack(
             TrackState state,
             String sourceUrl,
             String streamUrl,
-            Instant expiresAfter) {
+            Instant expiresAfter
+    ) {
         this(trackId.value(), metadata, durationSeconds, state, sourceUrl, streamUrl, expiresAfter);
     }
 
@@ -47,7 +49,14 @@ public record StreamTrack(
 
     public StreamTrack withStream(String newStreamUrl, Instant newExpiresAfter) {
         return new StreamTrack(
-                id, metadata, durationSeconds, TrackState.healthy(), sourceUrl, newStreamUrl, newExpiresAfter);
+                id,
+                metadata,
+                durationSeconds,
+                TrackState.healthy(),
+                sourceUrl,
+                newStreamUrl,
+                newExpiresAfter
+        );
     }
 
     @Override

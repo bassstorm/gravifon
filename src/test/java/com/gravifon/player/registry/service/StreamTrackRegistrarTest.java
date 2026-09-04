@@ -19,7 +19,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class StreamTrackRegistrarTest {
-
     @Test
     void expandsSourcesAndReusesExistingTrackIdentity() {
         TrackRepository repository = mock(TrackRepository.class);
@@ -28,7 +27,7 @@ class StreamTrackRegistrarTest {
         StreamTrackRegistrar registrar =
                 new StreamTrackRegistrar(repository, new StreamResolverRegistry(List.of(resolver)));
         when(repository.findById(org.mockito.ArgumentMatchers.anyString()))
-                .thenAnswer(invocation -> Optional.ofNullable(stored.get(invocation.getArgument(0))));
+            .thenAnswer(invocation -> Optional.ofNullable(stored.get(invocation.getArgument(0))));
         when(repository.save(org.mockito.ArgumentMatchers.any(Track.class))).thenAnswer(invocation -> {
             Track track = invocation.getArgument(0);
             stored.put(track.id(), track);
@@ -39,12 +38,10 @@ class StreamTrackRegistrarTest {
         List<Track> readded = registrar.registerSources(List.of("https://example.com/album"));
 
         assertThat(tracks)
-                .hasSize(2)
-                .extracting(Track::kind)
-                .containsOnly(com.gravifon.player.registry.model.TrackKind.STREAM);
-        assertThat(readded)
-                .extracting(Track::id)
-                .containsExactlyElementsOf(tracks.stream().map(Track::id).toList());
+            .hasSize(2)
+            .extracting(Track::kind)
+            .containsOnly(com.gravifon.player.registry.model.TrackKind.STREAM);
+        assertThat(readded).extracting(Track::id).containsExactlyElementsOf(tracks.stream().map(Track::id).toList());
         verify(repository, times(2)).save(org.mockito.ArgumentMatchers.any(Track.class));
     }
 
@@ -54,7 +51,7 @@ class StreamTrackRegistrarTest {
         StreamTrackRegistrar registrar = new StreamTrackRegistrar(repository, new StreamResolverRegistry(List.of()));
 
         assertThatThrownBy(() -> registrar.registerSources(List.of("https://unsupported.example/song")))
-                .isInstanceOf(StreamResolverRegistry.NoStreamResolverException.class);
+            .isInstanceOf(StreamResolverRegistry.NoStreamResolverException.class);
     }
 
     private static class StubResolver implements StreamResolver {
@@ -67,7 +64,8 @@ class StreamTrackRegistrarTest {
         public List<ResolvedTrack> resolveTracks(String sourceUrl) {
             return List.of(
                     new ResolvedTrack(sourceUrl + "/1", Map.of("TITLE", List.of("One")), 100L),
-                    new ResolvedTrack(sourceUrl + "/2", Map.of("TITLE", List.of("Two")), 110L));
+                    new ResolvedTrack(sourceUrl + "/2", Map.of("TITLE", List.of("Two")), 110L)
+            );
         }
 
         @Override

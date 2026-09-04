@@ -10,7 +10,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class StreamResolverRegistryTest {
-
     @Test
     void routesSourcesToTheFirstSupportingResolver() {
         StreamResolver resolver = new StubResolver("example.com");
@@ -25,7 +24,7 @@ class StreamResolverRegistryTest {
         StreamResolverRegistry registry = new StreamResolverRegistry(List.of(new StubResolver("example.com")));
 
         assertThatThrownBy(() -> registry.resolverFor("https://other.example/song"))
-                .isInstanceOf(StreamResolverRegistry.NoStreamResolverException.class);
+            .isInstanceOf(StreamResolverRegistry.NoStreamResolverException.class);
     }
 
     private static class StubResolver implements StreamResolver {
@@ -44,7 +43,8 @@ class StreamResolverRegistryTest {
         public List<ResolvedTrack> resolveTracks(String sourceUrl) {
             return List.of(
                     new ResolvedTrack(sourceUrl + "/1", Map.of("TITLE", List.of("One")), 100L),
-                    new ResolvedTrack(sourceUrl + "/2", Map.of("TITLE", List.of("Two")), 110L));
+                    new ResolvedTrack(sourceUrl + "/2", Map.of("TITLE", List.of("Two")), 110L)
+            );
         }
 
         @Override

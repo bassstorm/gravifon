@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/playback")
 @RequiredArgsConstructor
 public class PlaybackController {
-
     private final PlaybackService playbackService;
 
     @GetMapping

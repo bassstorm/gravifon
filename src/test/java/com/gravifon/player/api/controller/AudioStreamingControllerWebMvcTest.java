@@ -33,19 +33,14 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest(controllers = AudioStreamingController.class)
 @Import({ApiExceptionHandler.class, CorrelationIdFilter.class, AudioStreamingService.class})
 class AudioStreamingControllerWebMvcTest {
-
     @Autowired
     private MockMvc mockMvc;
-
     @MockitoBean
     private TrackRegistry trackRegistry;
-
     @MockitoBean
     private PlaybackService playbackService;
-
     @MockitoBean
     private StreamProxy streamProxy;
-
     @TempDir
     Path tempDir;
 
@@ -55,11 +50,12 @@ class AudioStreamingControllerWebMvcTest {
         when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(fileTrack("t1", "mp3")));
         when(trackRegistry.resolveTrackPath("t1")).thenReturn(Optional.of(track));
 
-        mockMvc.perform(get("/api/stream/t1").accept(MediaType.ALL))
-                .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.ACCEPT_RANGES, "bytes"))
-                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "audio/mpeg"))
-                .andExpect(content().bytes("0123456789".getBytes()));
+        mockMvc
+            .perform(get("/api/stream/t1").accept(MediaType.ALL))
+            .andExpect(status().isOk())
+            .andExpect(header().string(HttpHeaders.ACCEPT_RANGES, "bytes"))
+            .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "audio/mpeg"))
+            .andExpect(content().bytes("0123456789".getBytes()));
 
         verify(playbackService).observeStream("t1", 9, 10);
     }
@@ -70,10 +66,11 @@ class AudioStreamingControllerWebMvcTest {
         when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(fileTrack("t1", "mp3")));
         when(trackRegistry.resolveTrackPath("t1")).thenReturn(Optional.of(track));
 
-        mockMvc.perform(get("/api/stream/t1").header(HttpHeaders.RANGE, "bytes=2-5"))
-                .andExpect(status().isPartialContent())
-                .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes 2-5/10"))
-                .andExpect(content().bytes("2345".getBytes()));
+        mockMvc
+            .perform(get("/api/stream/t1").header(HttpHeaders.RANGE, "bytes=2-5"))
+            .andExpect(status().isPartialContent())
+            .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes 2-5/10"))
+            .andExpect(content().bytes("2345".getBytes()));
 
         verify(playbackService).observeStream("t1", 5, 10);
     }
@@ -84,11 +81,12 @@ class AudioStreamingControllerWebMvcTest {
         when(trackRegistry.findTrackById("t2")).thenReturn(Optional.of(fileTrack("t2", "ogg")));
         when(trackRegistry.resolveTrackPath("t2")).thenReturn(Optional.of(track));
 
-        mockMvc.perform(get("/api/stream/t2").header(HttpHeaders.RANGE, "bytes=6-"))
-                .andExpect(status().isPartialContent())
-                .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes 6-9/10"))
-                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "audio/ogg"))
-                .andExpect(content().bytes("ghij".getBytes()));
+        mockMvc
+            .perform(get("/api/stream/t2").header(HttpHeaders.RANGE, "bytes=6-"))
+            .andExpect(status().isPartialContent())
+            .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes 6-9/10"))
+            .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "audio/ogg"))
+            .andExpect(content().bytes("ghij".getBytes()));
     }
 
     @Test
@@ -97,19 +95,21 @@ class AudioStreamingControllerWebMvcTest {
         when(trackRegistry.findTrackById("t3")).thenReturn(Optional.of(fileTrack("t3", "flac")));
         when(trackRegistry.resolveTrackPath("t3")).thenReturn(Optional.of(track));
 
-        mockMvc.perform(get("/api/stream/t3").header(HttpHeaders.RANGE, "bytes=100-120"))
-                .andExpect(status().isRequestedRangeNotSatisfiable())
-                .andExpect(jsonPath("$.status").value(416));
+        mockMvc
+            .perform(get("/api/stream/t3").header(HttpHeaders.RANGE, "bytes=100-120"))
+            .andExpect(status().isRequestedRangeNotSatisfiable())
+            .andExpect(jsonPath("$.status").value(416));
     }
 
     @Test
     void streamTrack_withUnknownTrack_returns404() throws Exception {
         when(trackRegistry.resolveTrackPath("missing")).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/stream/missing"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404))
-                .andExpect(jsonPath("$.message").value("Track not found: missing"));
+        mockMvc
+            .perform(get("/api/stream/missing"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.status").value(404))
+            .andExpect(jsonPath("$.message").value("Track not found: missing"));
     }
 
     private Path createTrackFile(String fileName, String content) throws Exception {

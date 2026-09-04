@@ -28,7 +28,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class HttpStreamProxyTest {
-
     private final HttpClient client = mock(HttpClient.class);
     private final StreamRefreshService refreshService = mock(StreamRefreshService.class);
     private final HttpStreamProxy proxy = new HttpStreamProxy(client, refreshService);
@@ -39,18 +38,21 @@ class HttpStreamProxyTest {
             TrackState.healthy(),
             "https://source",
             "https://stream",
-            Instant.now().plusSeconds(60));
+            Instant.now().plusSeconds(60)
+    );
 
     @Test
     void forwardsRangeAndUpstreamPartialResponse() throws Exception {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpResponse<InputStream> upstream = response(
-                206, "abc", Map.of("Content-Range", List.of("bytes 2-4/10"), "Content-Type", List.of("audio/mpeg")));
+                206,
+                "abc",
+                Map.of("Content-Range", List.of("bytes 2-4/10"), "Content-Type", List.of("audio/mpeg"))
+        );
         when(refreshService.ensureFresh(track)).thenReturn(track);
         when(request.getHeader("Range")).thenReturn("bytes=2-4");
-        when(client.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(upstream);
+        when(client.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(upstream);
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         when(response.getOutputStream()).thenReturn(new ServletOutputStream() {
             public void write(int value) {
@@ -89,8 +91,7 @@ class HttpStreamProxyTest {
         HttpResponse<InputStream> upstream = response(200, "all-bytes", Map.of("Content-Type", List.of("audio/mpeg")));
         when(refreshService.ensureFresh(track)).thenReturn(track);
         when(request.getHeader("Range")).thenReturn("bytes=2-4");
-        when(client.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(upstream);
+        when(client.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(upstream);
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         when(response.getOutputStream()).thenReturn(outputStream(output));
 
@@ -106,8 +107,7 @@ class HttpStreamProxyTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpResponse<InputStream> upstream = response(503, "unavailable", Map.of());
         when(refreshService.ensureFresh(track)).thenReturn(track);
-        when(client.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
-                .thenReturn(upstream);
+        when(client.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(upstream);
         when(response.getOutputStream()).thenReturn(outputStream(new ByteArrayOutputStream()));
 
         proxy.proxy(track, request, response);

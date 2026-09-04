@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/stream")
 @RequiredArgsConstructor
 public class AudioStreamingController {
-
     private final TrackRegistry trackRegistry;
     private final StreamProxy streamProxy;
     private final AudioStreamingService audioStreamingService;
@@ -28,17 +27,16 @@ public class AudioStreamingController {
     @GetMapping("/{trackId}")
     public void streamTrack(@PathVariable String trackId, HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-
         Track track = trackRegistry
-                .findTrackById(trackId)
-                .orElseThrow(() -> new ResourceNotFoundException("Track not found: " + trackId));
+            .findTrackById(trackId)
+            .orElseThrow(() -> new ResourceNotFoundException("Track not found: " + trackId));
         if (track.kind() == TrackKind.STREAM) {
             streamProxy.proxy(track, request, response);
             return;
         }
         Path trackPath = trackRegistry
-                .resolveTrackPath(trackId)
-                .orElseThrow(() -> new ResourceNotFoundException("Track not found: " + trackId));
+            .resolveTrackPath(trackId)
+            .orElseThrow(() -> new ResourceNotFoundException("Track not found: " + trackId));
 
         audioStreamingService.streamFile(trackId, trackPath, request, response);
     }

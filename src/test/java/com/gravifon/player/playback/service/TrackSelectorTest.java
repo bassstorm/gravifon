@@ -8,7 +8,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class TrackSelectorTest {
-
     @Test
     void sequentialTrackSelector_advancesSequentiallyAndWraps() {
         SequentialTrackSelector selector = new SequentialTrackSelector();

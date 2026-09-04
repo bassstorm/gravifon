@@ -5,7 +5,6 @@ import java.util.Map;
 import org.jmolecules.ddd.types.AggregateRoot;
 
 public sealed interface Track extends AggregateRoot<Track, TrackId> permits FileTrack, StreamTrack {
-
     String id();
 
     default TrackId trackId() {

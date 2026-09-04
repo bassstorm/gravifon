@@ -12,18 +12,17 @@ import org.springframework.context.annotation.Configuration;
 @InfrastructureRing
 @Configuration
 public class SqliteDataSourceConfiguration {
-
     @Bean
     public DataSource dataSource(GravifonProperties properties) throws IOException {
         Files.createDirectories(properties.getConfigDir());
 
         HikariDataSource dataSource = new HikariDataSource();
-        dataSource.setJdbcUrl(
-                "jdbc:sqlite:%s".formatted(properties.getConfigDir().resolve("gravifon.db")));
+        dataSource.setJdbcUrl("jdbc:sqlite:%s".formatted(properties.getConfigDir().resolve("gravifon.db")));
         dataSource.setDriverClassName("org.sqlite.JDBC");
         dataSource.setConnectionInitSql("PRAGMA foreign_keys=ON");
         try (var connection = dataSource.getConnection();
-                var statement = connection.createStatement()) {
+                var statement = connection.createStatement()
+        ) {
             statement.execute("PRAGMA journal_mode=WAL");
         } catch (SQLException exception) {
             dataSource.close();

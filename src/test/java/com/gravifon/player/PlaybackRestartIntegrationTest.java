@@ -23,17 +23,16 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
 class PlaybackRestartIntegrationTest {
-
     @Test
     void restartRestoresSavedPositionAndNormalizesPlayingToPaused(@TempDir Path tempDir) throws Exception {
         Path musicRoot = Files.createDirectories(tempDir.resolve("music"));
         Path configDir = Files.createDirectories(tempDir.resolve("config"));
         String[] properties = {
-            "gravifon.music-root=" + musicRoot,
-            "gravifon.config-dir=" + configDir,
-            "gravifon.startup-scan-enabled=false",
-            "gravifon.streams.refresh-enabled=false",
-            "spring.main.web-application-type=none"
+                "gravifon.music-root=" + musicRoot,
+                "gravifon.config-dir=" + configDir,
+                "gravifon.startup-scan-enabled=false",
+                "gravifon.streams.refresh-enabled=false",
+                "spring.main.web-application-type=none"
         };
 
         try (ConfigurableApplicationContext first = context(properties)) {
@@ -46,7 +45,8 @@ class PlaybackRestartIntegrationTest {
             states.save(
                     "default",
                     new PlaybackState(playlist.id(), track.id(), PlaybackMode.SEQUENTIAL, TransportState.PLAYING, 42),
-                    "REPORTED");
+                    "REPORTED"
+            );
         }
 
         try (ConfigurableApplicationContext restarted = context(properties)) {
@@ -60,9 +60,10 @@ class PlaybackRestartIntegrationTest {
 
     private ConfigurableApplicationContext context(String... properties) {
         SpringApplication application = new SpringApplication(GravifonApplication.class);
-        String[] arguments = java.util.Arrays.stream(properties)
-                .map(property -> "--" + property)
-                .toArray(String[]::new);
+        String[] arguments = java.util.Arrays
+            .stream(properties)
+            .map(property -> "--" + property)
+            .toArray(String[]::new);
         return application.run(arguments);
     }
 }

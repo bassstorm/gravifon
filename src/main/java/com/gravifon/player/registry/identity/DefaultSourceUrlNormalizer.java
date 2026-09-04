@@ -8,7 +8,6 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class DefaultSourceUrlNormalizer implements SourceUrlNormalizer {
-
     @Override
     public String normalize(String sourceUrl) {
         if (sourceUrl == null || sourceUrl.isBlank()) {
@@ -22,21 +21,25 @@ public class DefaultSourceUrlNormalizer implements SourceUrlNormalizer {
             String query = uri.getRawQuery();
             String normalizedQuery = query == null
                     ? null
-                    : Arrays.stream(query.split("&"))
-                            .filter(parameter -> !parameter.isBlank())
-                            .filter(parameter -> !isVolatile(parameter.substring(
-                                    0, parameter.indexOf('=') >= 0 ? parameter.indexOf('=') : parameter.length())))
-                            .sorted(Comparator.naturalOrder())
-                            .collect(Collectors.joining("&"));
+                    : Arrays
+                .stream(query.split("&"))
+                .filter(parameter -> !parameter.isBlank())
+                .filter(parameter -> !isVolatile(parameter.substring(
+                        0,
+                        parameter.indexOf('=') >= 0 ? parameter.indexOf('=') : parameter.length()
+                )))
+                .sorted(Comparator.naturalOrder())
+                .collect(Collectors.joining("&"));
             return new URI(
-                            uri.getScheme().toLowerCase(Locale.ROOT),
-                            uri.getUserInfo(),
-                            uri.getHost().toLowerCase(Locale.ROOT),
-                            uri.getPort(),
-                            uri.getPath(),
-                            normalizedQuery == null || normalizedQuery.isBlank() ? null : normalizedQuery,
-                            uri.getFragment())
-                    .toString();
+                    uri.getScheme().toLowerCase(Locale.ROOT),
+                    uri.getUserInfo(),
+                    uri.getHost().toLowerCase(Locale.ROOT),
+                    uri.getPort(),
+                    uri.getPath(),
+                    normalizedQuery == null || normalizedQuery.isBlank() ? null : normalizedQuery,
+                    uri.getFragment()
+            )
+                .toString();
         } catch (URISyntaxException exception) {
             throw new IllegalArgumentException("Invalid source URL", exception);
         }

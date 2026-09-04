@@ -10,7 +10,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableConfigurationProperties(GravifonProperties.class)
 @EnableScheduling
 public class GravifonApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(GravifonApplication.class, args);
     }

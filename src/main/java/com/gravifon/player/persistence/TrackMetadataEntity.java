@@ -22,14 +22,12 @@ import lombok.experimental.Accessors;
 public class TrackMetadataEntity {
     @EmbeddedId
     @AttributeOverrides({
-        @AttributeOverride(name = "trackId", column = @Column(name = "track_id")),
-        @AttributeOverride(name = "key", column = @Column(name = "key")),
-        @AttributeOverride(name = "order", column = @Column(name = "ord"))
+            @AttributeOverride(name = "trackId", column = @Column(name = "track_id")),
+            @AttributeOverride(name = "key", column = @Column(name = "key")),
+            @AttributeOverride(name = "order", column = @Column(name = "ord"))
     })
     private TrackMetadataId id;
-
     private String value;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "track_id", insertable = false, updatable = false)
     private TrackEntity track;

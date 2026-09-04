@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/playlists")
 @RequiredArgsConstructor
 public class PlaylistController {
-
     private final PlaylistService playlistService;
     private final PlaybackService playbackService;
     private final StreamTrackRegistrar streamTrackRegistrar;
@@ -33,9 +32,11 @@ public class PlaylistController {
     @GetMapping
     public List<PlaylistResponse> listPlaylists() {
         String activeId = playlistService.activeId().orElse(null);
-        return playlistService.listPlaylists().stream()
-                .map(playlist -> PlaylistResponse.from(playlist, activeId))
-                .toList();
+        return playlistService
+            .listPlaylists()
+            .stream()
+            .map(playlist -> PlaylistResponse.from(playlist, activeId))
+            .toList();
     }
 
     @GetMapping("/{playlistId}")
@@ -59,35 +60,55 @@ public class PlaylistController {
             }
             return PlaylistResponse.from(
                     playlistService.materializeCatalog(request.name()),
-                    playlistService.activeId().orElse(null));
+                    playlistService.activeId().orElse(null)
+            );
         }
         List<String> trackIds = new ArrayList<>(request.trackIds());
         if (!request.sourceUrls().isEmpty()) {
-            trackIds.addAll(streamTrackRegistrar.registerSources(request.sourceUrls()).stream()
-                    .map(track -> track.id())
-                    .toList());
+            trackIds.addAll(streamTrackRegistrar
+                .registerSources(request.sourceUrls())
+                .stream()
+                .map(track -> track.id())
+                .toList()
+            );
         }
         return PlaylistResponse.from(
                 playlistService.create(request.name(), trackIds, request.mode()),
-                playlistService.activeId().orElse(null));
+                playlistService.activeId().orElse(null)
+        );
     }
 
     @Transactional
     @org.springframework.web.bind.annotation.PatchMapping("/{playlistId}")
     public PlaylistResponse updatePlaylist(
-            @PathVariable String playlistId, @RequestBody PlaylistMutationRequest request) {
+            @PathVariable String playlistId,
+            @RequestBody PlaylistMutationRequest request
+    ) {
         Playlist playlist = playlistService.getPlaylist(playlistId);
-        if (request.name() != null) playlist = playlistService.rename(playlistId, request.name());
-        if (!request.reorder().isEmpty()) playlist = playlistService.reorder(playlistId, request.reorder());
+        if (request.name() != null) {
+            playlist = playlistService.rename(playlistId, request.name());
+        }
+        if (!request.reorder().isEmpty()) {
+            playlist = playlistService.reorder(playlistId, request.reorder());
+        }
         List<String> additions = new ArrayList<>(request.add());
         if (!request.sourceUrls().isEmpty()) {
-            additions.addAll(streamTrackRegistrar.registerSources(request.sourceUrls()).stream()
-                    .map(track -> track.id())
-                    .toList());
+            additions.addAll(streamTrackRegistrar
+                .registerSources(request.sourceUrls())
+                .stream()
+                .map(track -> track.id())
+                .toList()
+            );
         }
-        if (!additions.isEmpty()) playlist = playlistService.addEntries(playlistId, additions);
-        if (!request.remove().isEmpty()) playlist = playlistService.removeEntries(playlistId, request.remove());
-        if (request.mode() != null) playlist = playlistService.setMode(playlistId, request.mode());
+        if (!additions.isEmpty()) {
+            playlist = playlistService.addEntries(playlistId, additions);
+        }
+        if (!request.remove().isEmpty()) {
+            playlist = playlistService.removeEntries(playlistId, request.remove());
+        }
+        if (request.mode() != null) {
+            playlist = playlistService.setMode(playlistId, request.mode());
+        }
         return PlaylistResponse.from(playlist, playlistService.activeId().orElse(null));
     }
 

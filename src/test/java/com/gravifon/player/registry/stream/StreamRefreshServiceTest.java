@@ -27,9 +27,7 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 
 class StreamRefreshServiceTest {
-
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
-
     private final StreamResolverRegistry resolverRegistry = mock(StreamResolverRegistry.class);
     private final TrackRegistry trackRegistry = mock(TrackRegistry.class);
     private final TrackRepository trackRepository = mock(TrackRepository.class);
@@ -41,7 +39,8 @@ class StreamRefreshServiceTest {
             trackRepository,
             playlistService,
             playbackService,
-            new GravifonProperties());
+            new GravifonProperties()
+    );
 
     @Test
     void freshUrlBypassesResolver() throws IOException {
@@ -58,10 +57,9 @@ class StreamRefreshServiceTest {
         StreamTrack refreshed = track("t1", Instant.parse("2026-01-01T00:01:00Z"));
         when(resolverRegistry.resolverFor(track)).thenReturn(resolver);
         when(resolver.refreshStream(track))
-                .thenReturn(new StreamResolver.ResolvedStream("https://fresh", refreshed.expiresAfter()));
+            .thenReturn(new StreamResolver.ResolvedStream("https://fresh", refreshed.expiresAfter()));
         when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(track));
-        when(trackRegistry.updateStream("t1", "https://fresh", refreshed.expiresAfter()))
-                .thenReturn(refreshed);
+        when(trackRegistry.updateStream("t1", "https://fresh", refreshed.expiresAfter())).thenReturn(refreshed);
 
         assertEquals(refreshed, service.ensureFresh(track, NOW));
         verify(trackRegistry).updateStream("t1", "https://fresh", refreshed.expiresAfter());
@@ -88,7 +86,13 @@ class StreamRefreshServiceTest {
         properties.getStreams().setRefreshTimeout(java.time.Duration.ofMillis(10));
         properties.getStreams().setRefreshMaxAttempts(1);
         StreamRefreshService shortTimeoutService = new StreamRefreshService(
-                resolverRegistry, trackRegistry, trackRepository, playlistService, playbackService, properties);
+                resolverRegistry,
+                trackRegistry,
+                trackRepository,
+                playlistService,
+                playbackService,
+                properties
+        );
         when(resolverRegistry.resolverFor(track)).thenReturn(resolver);
         when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(track));
         when(resolver.refreshStream(track)).thenAnswer(invocation -> {
@@ -116,7 +120,10 @@ class StreamRefreshServiceTest {
         });
 
         CompletableFuture<StreamTrack> first = CompletableFuture.supplyAsync(() -> refresh(track));
-        Awaitility.await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> assertEquals(0, entered.getCount()));
+        Awaitility
+            .await()
+            .atMost(1, TimeUnit.SECONDS)
+            .untilAsserted(() -> assertEquals(0, entered.getCount()));
         CompletableFuture<StreamTrack> second = CompletableFuture.supplyAsync(() -> refresh(track));
         release.countDown();
         Awaitility.await().atMost(2, TimeUnit.SECONDS).until(first::isDone);

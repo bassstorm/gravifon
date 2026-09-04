@@ -7,7 +7,6 @@ import com.gravifon.player.playlist.model.PlaylistId;
 import org.junit.jupiter.api.Test;
 
 class IdentifierTest {
-
     @Test
     void trackIdValidationAndEquality() {
         TrackId id1 = TrackId.of("track-123");

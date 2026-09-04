@@ -11,18 +11,15 @@ import org.jmolecules.archunit.JMoleculesDddRules;
 
 @AnalyzeClasses(packages = "com.gravifon.player", importOptions = ImportOption.DoNotIncludeTests.class)
 public class DomainArchitectureArchUnitTest {
-
     @ArchTest
     ArchRule dddRules = JMoleculesDddRules.all();
-
     @ArchTest
     ArchRule architectureRules = JMoleculesArchitectureRules.ensureOnionSimple();
-
     @ArchTest
     ArchRule domainModelShouldNotDependOnSpringOrJakarta = noClasses()
-            .that()
-            .resideInAPackage("com.gravifon.player..model..")
-            .should()
-            .dependOnClassesThat()
-            .resideInAnyPackage("org.springframework..", "jakarta.servlet..", "jakarta.persistence..");
+        .that()
+        .resideInAPackage("com.gravifon.player..model..")
+        .should()
+        .dependOnClassesThat()
+        .resideInAnyPackage("org.springframework..", "jakarta.servlet..", "jakarta.persistence..");
 }

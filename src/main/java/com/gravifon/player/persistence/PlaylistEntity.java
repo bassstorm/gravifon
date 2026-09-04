@@ -22,16 +22,12 @@ import lombok.experimental.Accessors;
 public class PlaylistEntity {
     @Id
     private String id;
-
     private String name;
     private String playbackMode;
-
     @Column(name = "created_at")
     private long createdAt;
-
     @Column(name = "updated_at")
     private long updatedAt;
-
     @OneToMany(mappedBy = "playlist", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<PlaylistEntryEntity> entries = new ArrayList<>();
 

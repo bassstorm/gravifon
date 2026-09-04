@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/tracks")
 @RequiredArgsConstructor
 public class TrackController {
-
     private final TrackRegistry trackRegistry;
 
     @GetMapping
@@ -30,9 +29,9 @@ public class TrackController {
     @GetMapping("/{trackId}")
     public TrackResponse getTrack(@PathVariable String trackId) {
         return trackRegistry
-                .findTrackById(trackId)
-                .map(TrackResponse::from)
-                .orElseThrow(() -> new ResourceNotFoundException("Track not found: " + trackId));
+            .findTrackById(trackId)
+            .map(TrackResponse::from)
+            .orElseThrow(() -> new ResourceNotFoundException("Track not found: " + trackId));
     }
 
     @PatchMapping("/{trackId}/metadata")
@@ -42,7 +41,7 @@ public class TrackController {
 
     @PostMapping("/{trackId}/state")
     public TrackResponse reportState(@PathVariable String trackId, @RequestBody TrackStateReportRequest request) {
-        return TrackResponse.from(
-                trackRegistry.reportState(trackId, request.kind(), request.message(), request.clear()));
+        return TrackResponse.from(trackRegistry.reportState(trackId, request.kind(), request.message(), request.clear())
+        );
     }
 }

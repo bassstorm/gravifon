@@ -24,7 +24,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class TrackRegistry {
-
     private final GravifonProperties properties;
     private final TrackRepository trackRepository;
     private final LibraryScanCoordinator scanCoordinator;
@@ -44,10 +43,9 @@ public class TrackRegistry {
 
     public Optional<Path> resolveTrackPath(String trackId) {
         return findTrackById(trackId)
-                .filter(FileTrack.class::isInstance)
-                .map(FileTrack.class::cast)
-                .map(fileTrack ->
-                        properties.getMusicRoot().resolve(fileTrack.relPath()).normalize());
+            .filter(FileTrack.class::isInstance)
+            .map(FileTrack.class::cast)
+            .map(fileTrack -> properties.getMusicRoot().resolve(fileTrack.relPath()).normalize());
     }
 
     @Transactional
@@ -80,10 +78,11 @@ public class TrackRegistry {
         Map<String, List<String>> normalized = new LinkedHashMap<>();
         metadata.forEach((key, values) -> normalized.put(key, List.copyOf(values)));
         Track updated = track.withMetadata(normalized);
-        writeBackHandlers.stream()
-                .filter(handler -> handler.supports(updated))
-                .findFirst()
-                .ifPresent(handler -> handler.writeBack(updated, normalized));
+        writeBackHandlers
+            .stream()
+            .filter(handler -> handler.supports(updated))
+            .findFirst()
+            .ifPresent(handler -> handler.writeBack(updated, normalized));
         return trackRepository.save(updated);
     }
 
@@ -94,7 +93,9 @@ public class TrackRegistry {
         TrackState state = clear
                 ? TrackState.healthy()
                 : new TrackState(
-                        true, new TrackError(kind == null ? "CLIENT_ERROR" : kind, message, Instant.now(), "CLIENT"));
+                        true,
+                        new TrackError(kind == null ? "CLIENT_ERROR" : kind, message, Instant.now(), "CLIENT")
+        );
         return trackRepository.save(track.withState(state));
     }
 }

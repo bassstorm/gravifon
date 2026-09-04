@@ -39,14 +39,15 @@ public class JpaPlaylistRepository implements PlaylistRepository {
     @Transactional
     public Playlist save(Playlist playlist) {
         Instant now = Instant.now();
-        PlaylistEntity entity = store.findById(playlist.id())
-                .orElseGet(() -> new PlaylistEntity(
-                        playlist.id(), playlist.name(), playlist.playbackMode().name(), now));
+        PlaylistEntity entity = store
+            .findById(playlist.id())
+            .orElseGet(() -> new PlaylistEntity(playlist.id(), playlist.name(), playlist.playbackMode().name(), now));
         entity.update(playlist.name(), playlist.playbackMode().name(), now);
-        entity.replaceEntries(IntStream.range(0, playlist.trackIds().size())
-                .mapToObj(position ->
-                        new PlaylistEntryEntity(position, playlist.trackIds().get(position)))
-                .toList());
+        entity.replaceEntries(IntStream
+            .range(0, playlist.trackIds().size())
+            .mapToObj(position -> new PlaylistEntryEntity(position, playlist.trackIds().get(position)))
+            .toList()
+        );
         return toDomain(store.save(entity));
     }
 
@@ -57,10 +58,12 @@ public class JpaPlaylistRepository implements PlaylistRepository {
     }
 
     private Playlist toDomain(PlaylistEntity entity) {
-        List<String> ids = entity.entries().stream()
-                .sorted(Comparator.comparingInt(PlaylistEntryEntity::position))
-                .map(PlaylistEntryEntity::trackId)
-                .toList();
+        List<String> ids = entity
+            .entries()
+            .stream()
+            .sorted(Comparator.comparingInt(PlaylistEntryEntity::position))
+            .map(PlaylistEntryEntity::trackId)
+            .toList();
         return new Playlist(entity.id(), entity.name(), ids, PlaybackMode.valueOf(entity.playbackMode()));
     }
 }

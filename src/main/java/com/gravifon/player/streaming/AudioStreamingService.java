@@ -19,7 +19,6 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @RequiredArgsConstructor
 public class AudioStreamingService {
-
     private final PlaybackService playbackService;
 
     public void streamFile(String trackId, Path trackPath, HttpServletRequest request, HttpServletResponse response)
@@ -47,7 +46,9 @@ public class AudioStreamingService {
         long regionLength = range.end() - range.start() + 1;
         response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
         response.setHeader(
-                HttpHeaders.CONTENT_RANGE, "bytes %d-%d/%d".formatted(range.start(), range.end(), fileLength));
+                HttpHeaders.CONTENT_RANGE,
+                "bytes %d-%d/%d".formatted(range.start(), range.end(), fileLength)
+        );
         response.setContentLengthLong(regionLength);
 
         try (FileChannel channel = FileChannel.open(trackPath, StandardOpenOption.READ)) {
@@ -99,7 +100,8 @@ public class AudioStreamingService {
     private ResponseStatusException rangeNotSatisfiable(long fileLength) {
         return new ResponseStatusException(
                 HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE,
-                "Range not satisfiable. Expected bytes within resource length %d".formatted(fileLength));
+                "Range not satisfiable. Expected bytes within resource length %d".formatted(fileLength)
+        );
     }
 
     private MediaType resolveContentType(Path path) {

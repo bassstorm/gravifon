@@ -151,7 +151,9 @@
                 <version>3.10.1</version>
                 <configuration>
                     <java>
-                        <palantirJavaFormat />
+                        <princeOfSpace>
+                            <javaLanguageLevel>${java.version}</javaLanguageLevel>
+                        </princeOfSpace>
                         <formatAnnotations />
                         <expandWildcardImports />
                         <forbidWildcardImports />
@@ -160,12 +162,15 @@
                         <importOrder />
                         <trimTrailingWhitespace />
                         <endWithNewline />
-                        <indent>
-                            <spaces>true</spaces>
-                            <spacesPerTab>4</spacesPerTab>
-                        </indent>
                     </java>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

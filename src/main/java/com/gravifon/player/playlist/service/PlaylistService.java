@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class PlaylistService {
-
     private final PlaylistRepository playlistRepository;
     private final TrackRepository trackRepository;
     private final AtomicReference<String> activePlaylistId = new AtomicReference<>();
@@ -29,8 +28,8 @@ public class PlaylistService {
 
     public Playlist getPlaylist(String playlistId) {
         return playlistRepository
-                .findById(playlistId)
-                .orElseThrow(() -> new ResourceNotFoundException("Playlist not found: " + playlistId));
+            .findById(playlistId)
+            .orElseThrow(() -> new ResourceNotFoundException("Playlist not found: " + playlistId));
     }
 
     public Playlist select(String playlistId) {
@@ -63,10 +62,14 @@ public class PlaylistService {
 
     @Transactional
     public Playlist materializeCatalog(String name) {
-        List<String> trackIds =
-                trackRepository.findAll().stream().map(track -> track.id()).toList();
+        List<String> trackIds = trackRepository
+            .findAll()
+            .stream()
+            .map(track -> track.id())
+            .toList();
         return playlistRepository.save(
-                new Playlist(UUID.randomUUID().toString(), name, trackIds, PlaybackMode.SEQUENTIAL));
+                new Playlist(UUID.randomUUID().toString(), name, trackIds, PlaybackMode.SEQUENTIAL)
+        );
     }
 
     @Transactional
@@ -113,7 +116,9 @@ public class PlaylistService {
         }
         var foundTracks = trackRepository.findAllById(trackIds);
         var existingIds = foundTracks.stream().map(Track::id).collect(Collectors.toSet());
-        if (trackIds.stream().anyMatch(id -> !existingIds.contains(id))) {
+        if (trackIds
+            .stream()
+            .anyMatch(id -> !existingIds.contains(id))) {
             throw new IllegalArgumentException("Playlist contains an unknown track");
         }
     }

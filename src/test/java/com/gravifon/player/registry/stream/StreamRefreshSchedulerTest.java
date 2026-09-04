@@ -6,7 +6,6 @@ import static org.mockito.Mockito.verify;
 import org.junit.jupiter.api.Test;
 
 class StreamRefreshSchedulerTest {
-
     @Test
     void scheduledExecutionDelegatesToService() {
         StreamRefreshService refreshService = mock(StreamRefreshService.class);

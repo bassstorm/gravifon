@@ -32,7 +32,6 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class GravifonIntegrationTest {
-
     @TempDir
     static Path musicRoot;
 
@@ -51,21 +50,17 @@ class GravifonIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
-
     @Autowired
     private TrackRegistry trackRegistry;
-
     @Autowired
     private PlaylistService playlistService;
-
     private String playlistId;
 
     @BeforeEach
     void refreshCatalogAndPlaylists() {
         trackRegistry.refresh();
         if (playlistService.listPlaylists().isEmpty()) {
-            playlistId =
-                    playlistService.materializeCatalog("Integration Playlist").id();
+            playlistId = playlistService.materializeCatalog("Integration Playlist").id();
         } else {
             playlistId = playlistService.listPlaylists().getFirst().id();
         }
@@ -73,114 +68,123 @@ class GravifonIntegrationTest {
     }
 
     // ── Track endpoints ──────────────────────────────────────────────────
-
     @Test
     void tracks_listIncludesBothAudioFiles() throws Exception {
-        mockMvc.perform(get("/api/tracks")
-                        .header(CorrelationIdFilter.CORRELATION_ID_HEADER, "it-cid-001")
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(header().string(CorrelationIdFilter.CORRELATION_ID_HEADER, "it-cid-001"))
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].id", notNullValue()))
-                .andExpect(jsonPath("$[0].format").isNotEmpty());
+        mockMvc
+            .perform(get("/api/tracks")
+                .header(CorrelationIdFilter.CORRELATION_ID_HEADER, "it-cid-001")
+                .accept(MediaType.APPLICATION_JSON)
+            )
+            .andExpect(status().isOk())
+            .andExpect(header().string(CorrelationIdFilter.CORRELATION_ID_HEADER, "it-cid-001"))
+            .andExpect(jsonPath("$", hasSize(2)))
+            .andExpect(jsonPath("$[0].id", notNullValue()))
+            .andExpect(jsonPath("$[0].format").isNotEmpty());
     }
 
     @Test
     void tracks_unknownTrackReturns404() throws Exception {
-        mockMvc.perform(get("/api/tracks/nonexistent").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value(404));
+        mockMvc
+            .perform(get("/api/tracks/nonexistent").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.status").value(404));
     }
 
     // ── Playlist endpoints ───────────────────────────────────────────────
-
     @Test
     void playlists_materializedRegistryPlaylistExistsWithTwoTracks() throws Exception {
-        mockMvc.perform(get("/api/playlists").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))))
-                .andExpect(jsonPath("$[0].id").value(playlistId))
-                .andExpect(jsonPath("$[0].trackIds", hasSize(2)))
-                .andExpect(jsonPath("$[0].active").value(true));
+        mockMvc
+            .perform(get("/api/playlists").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))))
+            .andExpect(jsonPath("$[0].id").value(playlistId))
+            .andExpect(jsonPath("$[0].trackIds", hasSize(2)))
+            .andExpect(jsonPath("$[0].active").value(true));
     }
 
     @Test
     void playlists_selectAndReturnPlaybackSnapshot() throws Exception {
-        mockMvc.perform(post("/api/playlists/" + playlistId + "/select").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.activePlaylistId").value(playlistId))
-                .andExpect(jsonPath("$.currentTrackId", notNullValue()));
+        mockMvc
+            .perform(post("/api/playlists/" + playlistId + "/select").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.activePlaylistId").value(playlistId))
+            .andExpect(jsonPath("$.currentTrackId", notNullValue()));
     }
 
     @Test
     void playlists_createEndpointPersistsPlaylist() throws Exception {
-        mockMvc.perform(post("/api/playlists")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"Created Playlist\",\"catalog\":true}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Created Playlist"))
-                .andExpect(jsonPath("$.trackIds", hasSize(2)));
+        mockMvc
+            .perform(post("/api/playlists")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Created Playlist\",\"catalog\":true}")
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.name").value("Created Playlist"))
+            .andExpect(jsonPath("$.trackIds", hasSize(2)));
     }
 
     // ── Playback control flow ────────────────────────────────────────────
-
     @Test
     void playback_stateFlowWithServerContextVerification() throws Exception {
         String trackId = trackRegistry.listTracks().getFirst().id();
-
         // Prepare a track and explicitly report the server-owned transport state.
-        mockMvc.perform(post("/api/playback/track/" + trackId)
-                        .header(CorrelationIdFilter.CORRELATION_ID_HEADER, "it-cid-play"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.currentTrackId").value(trackId))
-                .andExpect(jsonPath("$.transportState").value("stopped"));
+        mockMvc
+            .perform(post("/api/playback/track/" + trackId)
+                .header(CorrelationIdFilter.CORRELATION_ID_HEADER, "it-cid-play")
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.currentTrackId").value(trackId))
+            .andExpect(jsonPath("$.transportState").value("stopped"));
 
-        mockMvc.perform(post("/api/playback/transport/playing"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.transportState").value("playing"));
+        mockMvc
+            .perform(post("/api/playback/transport/playing"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.transportState").value("playing"));
 
-        mockMvc.perform(post("/api/playback/position")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"trackId\":\"" + trackId + "\",\"positionSeconds\":0}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.positionSeconds").value(0));
+        mockMvc
+            .perform(post("/api/playback/position")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"trackId\":\"" + trackId + "\",\"positionSeconds\":0}")
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.positionSeconds").value(0));
 
-        mockMvc.perform(post("/api/playback/next"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.currentTrackId", notNullValue()));
-
+        mockMvc
+            .perform(post("/api/playback/next"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.currentTrackId", notNullValue()));
         // Switch to random mode
-        mockMvc.perform(post("/api/playback/mode/random"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.playbackMode").value("random"));
+        mockMvc
+            .perform(post("/api/playback/mode/random"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.playbackMode").value("random"));
 
-        mockMvc.perform(post("/api/playback/transport/stopped"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.transportState").value("stopped"))
-                .andExpect(jsonPath("$.positionSeconds").value(0));
-
+        mockMvc
+            .perform(post("/api/playback/transport/stopped"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.transportState").value("stopped"))
+            .andExpect(jsonPath("$.positionSeconds").value(0));
         // A reconnect reads the same global snapshot without a server session.
-        mockMvc.perform(get("/api/playback").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.transportState").value("stopped"))
-                .andExpect(jsonPath("$.positionSeconds").value(0));
+        mockMvc
+            .perform(get("/api/playback").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.transportState").value("stopped"))
+            .andExpect(jsonPath("$.positionSeconds").value(0));
     }
 
     // ── Streaming ────────────────────────────────────────────────────────
-
     @Test
     void stream_fullFileAndRangeRequestForKnownTrack() throws Exception {
         String trackId = trackRegistry.listTracks().getFirst().id();
-
         // Full file
-        mockMvc.perform(get("/api/stream/" + trackId))
-                .andExpect(status().isOk())
-                .andExpect(header().string("Accept-Ranges", "bytes"));
-
+        mockMvc
+            .perform(get("/api/stream/" + trackId))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Accept-Ranges", "bytes"));
         // Byte range — verify partial content status and Content-Range header
-        mockMvc.perform(get("/api/stream/" + trackId).header("Range", "bytes=0-3"))
-                .andExpect(status().isPartialContent())
-                .andExpect(header().string("Content-Range", org.hamcrest.Matchers.startsWith("bytes 0-3/")));
+        mockMvc
+            .perform(get("/api/stream/" + trackId).header("Range", "bytes=0-3"))
+            .andExpect(status().isPartialContent())
+            .andExpect(header().string("Content-Range", org.hamcrest.Matchers.startsWith("bytes 0-3/")));
     }
 }

@@ -15,21 +15,18 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
-
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ApiErrorResponse> handleMissingRoute(
-            NoResourceFoundException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiErrorResponse> handleMissingRoute(NoResourceFoundException ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.NOT_FOUND, "Resource not found", request);
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<ApiErrorResponse> handleResponseStatus(
-            ResponseStatusException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiErrorResponse> handleResponseStatus(ResponseStatusException ex, HttpServletRequest request) {
         HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
         String message = ex.getReason() != null ? ex.getReason() : status.getReasonPhrase();
         return buildResponse(status, message, request);
@@ -51,7 +48,10 @@ public class ApiExceptionHandler {
     }
 
     private ResponseEntity<ApiErrorResponse> buildResponse(
-            HttpStatus status, String message, HttpServletRequest request) {
+            HttpStatus status,
+            String message,
+            HttpServletRequest request
+    ) {
         String correlationId = (String) request.getAttribute(CorrelationIdFilter.CORRELATION_ID_REQUEST_ATTRIBUTE);
         ApiErrorResponse body = new ApiErrorResponse(
                 Instant.now(),
@@ -59,7 +59,8 @@ public class ApiExceptionHandler {
                 status.getReasonPhrase(),
                 message,
                 request.getRequestURI(),
-                correlationId);
+                correlationId
+        );
         return ResponseEntity.status(status).body(body);
     }
 }

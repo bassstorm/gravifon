@@ -20,13 +20,11 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class PlaybackService {
-
     private final PlaylistService playlistService;
     private final TrackRepository trackRepository;
     private final PlaybackStateRepository stateRepository;
     private final TrackSelectorRegistry selectorRegistry;
     private static final String SESSION_ID = "default";
-
     private PlaybackSession session = PlaybackSession.initial(SESSION_ID);
 
     @PostConstruct
@@ -50,7 +48,8 @@ public class PlaybackService {
                     mode,
                     state.transportState(),
                     state.positionSeconds(),
-                    state.positionOrigin());
+                    state.positionOrigin()
+            );
             session = PlaybackSession.fromState(SESSION_ID, enrichedState);
         });
     }
@@ -119,9 +118,10 @@ public class PlaybackService {
     }
 
     private Optional<Long> currentTrackDurationSeconds() {
-        return Optional.ofNullable(session.currentTrackId())
-                .flatMap(trackRepository::findById)
-                .map(Track::durationSeconds);
+        return Optional
+            .ofNullable(session.currentTrackId())
+            .flatMap(trackRepository::findById)
+            .map(Track::durationSeconds);
     }
 
     private List<String> activeTrackIds() {

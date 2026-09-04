@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 @ApplicationRing
 @Component
 public class StreamResolverRegistry {
-
     private final List<StreamResolver> resolvers;
 
     public StreamResolverRegistry(List<StreamResolver> resolvers) {
@@ -17,10 +16,11 @@ public class StreamResolverRegistry {
     }
 
     public StreamResolver resolverFor(String sourceUrl) {
-        return resolvers.stream()
-                .filter(resolver -> resolver.supports(sourceUrl))
-                .findFirst()
-                .orElseThrow(() -> new NoStreamResolverException(sourceUrl));
+        return resolvers
+            .stream()
+            .filter(resolver -> resolver.supports(sourceUrl))
+            .findFirst()
+            .orElseThrow(() -> new NoStreamResolverException(sourceUrl));
     }
 
     public StreamResolver resolverFor(Track track) {

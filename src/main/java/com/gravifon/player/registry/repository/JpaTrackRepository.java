@@ -82,7 +82,8 @@ public class JpaTrackRepository implements TrackRepository {
                 errorKind(track),
                 errorMessage(track),
                 errorAt(track),
-                errorReporter(track));
+                errorReporter(track)
+        );
         List<TrackMetadataEntity> metadata = new ArrayList<>();
         track.metadata().forEach((key, values) -> {
             for (int order = 0; order < values.size(); order++) {
@@ -101,15 +102,24 @@ public class JpaTrackRepository implements TrackRepository {
 
     private Track toDomain(TrackEntity entity) {
         var metadata = new LinkedHashMap<String, List<String>>();
-        entity.metadata().stream()
-                .sorted(java.util.Comparator.comparing(TrackMetadataEntity::key)
-                        .thenComparingInt(TrackMetadataEntity::order))
-                .forEach(value -> metadata.computeIfAbsent(value.key(), ignored -> new ArrayList<>())
-                        .add(value.value()));
+        entity
+            .metadata()
+            .stream()
+            .sorted(java.util.Comparator
+                .comparing(TrackMetadataEntity::key)
+                .thenComparingInt(TrackMetadataEntity::order)
+            )
+            .forEach(value -> metadata
+                .computeIfAbsent(value.key(), ignored -> new ArrayList<>())
+                .add(value.value()));
         TrackError error = entity.errorKind() == null
                 ? null
                 : new TrackError(
-                        entity.errorKind(), entity.errorMessage(), instant(entity.errorAt()), entity.errorReporter());
+                        entity.errorKind(),
+                        entity.errorMessage(),
+                        instant(entity.errorAt()),
+                        entity.errorReporter()
+        );
         TrackKind kind = TrackKind.valueOf(entity.kind());
         return switch (kind) {
             case FILE -> new FileTrack(
@@ -118,7 +128,8 @@ public class JpaTrackRepository implements TrackRepository {
                     entity.durationSeconds(),
                     new TrackState(entity.failing(), error),
                     entity.relativePath(),
-                    entity.format());
+                    entity.format()
+            );
             case STREAM -> new StreamTrack(
                     entity.id(),
                     metadata,
@@ -126,7 +137,8 @@ public class JpaTrackRepository implements TrackRepository {
                     new TrackState(entity.failing(), error),
                     entity.sourceUrl(),
                     entity.streamUrl(),
-                    instant(entity.expiresAfter()));
+                    instant(entity.expiresAfter())
+            );
         };
     }
 
@@ -139,26 +151,18 @@ public class JpaTrackRepository implements TrackRepository {
     }
 
     private String errorKind(Track track) {
-        return track.state().lastError() == null
-                ? null
-                : track.state().lastError().kind();
+        return track.state().lastError() == null ? null : track.state().lastError().kind();
     }
 
     private String errorMessage(Track track) {
-        return track.state().lastError() == null
-                ? null
-                : track.state().lastError().message();
+        return track.state().lastError() == null ? null : track.state().lastError().message();
     }
 
     private Long errorAt(Track track) {
-        return track.state().lastError() == null
-                ? null
-                : epoch(track.state().lastError().at());
+        return track.state().lastError() == null ? null : epoch(track.state().lastError().at());
     }
 
     private String errorReporter(Track track) {
-        return track.state().lastError() == null
-                ? null
-                : track.state().lastError().reportedBy();
+        return track.state().lastError() == null ? null : track.state().lastError().reportedBy();
     }
 }

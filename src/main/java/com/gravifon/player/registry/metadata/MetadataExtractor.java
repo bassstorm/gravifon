@@ -7,11 +7,9 @@ import org.jmolecules.architecture.onion.simplified.DomainRing;
 
 @DomainRing
 public interface MetadataExtractor {
-
     ExtractedMetadata extract(Path path);
 
     record ExtractedMetadata(Map<String, List<String>> values, Long durationSeconds, boolean readable) {
-
         public ExtractedMetadata(Map<String, List<String>> values, Long durationSeconds) {
             this(values, durationSeconds, true);
         }

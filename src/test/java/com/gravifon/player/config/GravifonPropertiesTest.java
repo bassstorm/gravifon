@@ -6,7 +6,6 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 
 class GravifonPropertiesTest {
-
     @Test
     void defaultsAndMutatorsWork() {
         GravifonProperties properties = new GravifonProperties();

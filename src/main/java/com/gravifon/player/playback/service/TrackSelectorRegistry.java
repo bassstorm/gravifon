@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class TrackSelectorRegistry {
-
     private final Map<PlaybackMode, TrackSelector> selectors;
 
     public TrackSelectorRegistry(List<TrackSelector> selectors) {

@@ -21,9 +21,11 @@ class FileLibraryScannerTest {
         when(extractor.extract(file)).thenThrow(new IllegalStateException("malformed tags"));
         FileLibraryScanner scanner = new FileLibraryScanner(extractor);
 
-        assertThat(scanner.scan(tempDir)).singleElement().satisfies(scanFile -> {
-            assertThat(scanFile.readable()).isFalse();
-            assertThat(scanFile.metadata()).isEmpty();
-        });
+        assertThat(scanner.scan(tempDir))
+            .singleElement()
+            .satisfies(scanFile -> {
+                assertThat(scanFile.readable()).isFalse();
+                assertThat(scanFile.metadata()).isEmpty();
+            });
     }
 }

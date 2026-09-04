@@ -15,7 +15,6 @@ import lombok.experimental.Accessors;
 public class PlaybackStateEntity {
     @Id
     private String sessionId;
-
     private String activePlaylistId;
     private String currentTrackId;
     private String transportState;
@@ -30,7 +29,8 @@ public class PlaybackStateEntity {
             String transportState,
             long positionSeconds,
             String positionOrigin,
-            long updatedAt) {
+            long updatedAt
+    ) {
         this.sessionId = sessionId;
         this.activePlaylistId = activePlaylistId;
         this.currentTrackId = currentTrackId;

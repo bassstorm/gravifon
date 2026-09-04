@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class StreamTrackRegistrar {
-
     private final TrackRepository trackRepository;
     private final StreamResolverRegistry resolverRegistry;
 
@@ -39,7 +38,8 @@ public class StreamTrackRegistrar {
                             TrackState.healthy(),
                             resolved.sourceUrl(),
                             null,
-                            null);
+                            null
+                    );
                     tracks.add(trackRepository.save(track));
                 }
             }

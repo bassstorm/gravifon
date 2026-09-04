@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 class PlaybackServiceTest {
-
     private PlaylistService playlistService;
     private TrackRepository trackRepository;
     private PlaybackStateRepository stateRepository;
@@ -71,8 +70,8 @@ class PlaybackServiceTest {
         assertThat(selected.positionSeconds()).isZero();
 
         assertThatThrownBy(() -> playbackService.selectTrack("missing"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("active playlist");
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("active playlist");
     }
 
     @Test
@@ -117,8 +116,7 @@ class PlaybackServiceTest {
 
         assertThat(playbackService.reportPosition("t1", 42).positionSeconds()).isEqualTo(42);
         assertThat(playbackService.reportPosition("t1", 100).positionSeconds()).isEqualTo(42);
-        assertThat(playbackService.reportPosition("stale", 42).positionSeconds())
-                .isEqualTo(42);
+        assertThat(playbackService.reportPosition("stale", 42).positionSeconds()).isEqualTo(42);
     }
 
     @Test
@@ -151,7 +149,7 @@ class PlaybackServiceTest {
         when(persistentPlaylists.getActive()).thenReturn(playlist);
         when(persistentPlaylists.select("p1")).thenReturn(playlist);
         when(tracks.findById("t1"))
-                .thenReturn(Optional.of(new FileTrack("t1", Map.of(), 120L, TrackState.healthy(), "t1.mp3", "mp3")));
+            .thenReturn(Optional.of(new FileTrack("t1", Map.of(), 120L, TrackState.healthy(), "t1.mp3", "mp3")));
         PlaybackService persistentPlayback = new PlaybackService(persistentPlaylists, tracks, states, selectorRegistry);
 
         assertThat(persistentPlayback.selectPlaylist("p1").playbackMode()).isEqualTo(PlaybackMode.RANDOM);
@@ -168,8 +166,7 @@ class PlaybackServiceTest {
         TrackRepository tracks = Mockito.mock(TrackRepository.class);
         Playlist playlist = new Playlist("p1", "Playlist", List.of("t1"));
         when(states.find("default"))
-                .thenReturn(Optional.of(
-                        new PlaybackState("p1", "t1", PlaybackMode.SEQUENTIAL, TransportState.PLAYING, 37)));
+            .thenReturn(Optional.of(new PlaybackState("p1", "t1", PlaybackMode.SEQUENTIAL, TransportState.PLAYING, 37)));
         when(persistentPlaylists.select("p1")).thenReturn(playlist);
         when(persistentPlaylists.getActive()).thenReturn(playlist);
         when(tracks.findById("t1")).thenReturn(Optional.of(track("t1", 120L)));
@@ -184,6 +181,12 @@ class PlaybackServiceTest {
 
     private Track track(String id, long duration) {
         return new FileTrack(
-                id, Map.of(), duration, com.gravifon.player.registry.model.TrackState.healthy(), id + ".mp3", "mp3");
+                id,
+                Map.of(),
+                duration,
+                com.gravifon.player.registry.model.TrackState.healthy(),
+                id + ".mp3",
+                "mp3"
+        );
     }
 }

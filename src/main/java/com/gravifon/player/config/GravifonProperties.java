@@ -6,7 +6,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "gravifon")
 public class GravifonProperties {
-
     private Path musicRoot = Path.of("/music");
     private Path configDir = Path.of("/config");
     private boolean startupScanEnabled = true;

@@ -11,6 +11,7 @@ public record PlaylistResponse(String id, String name, List<String> trackIds, Pl
                 playlist.name(),
                 playlist.trackIds(),
                 playlist.playbackMode(),
-                playlist.id().equals(activePlaylistId));
+                playlist.id().equals(activePlaylistId)
+        );
     }
 }
