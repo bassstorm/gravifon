@@ -28,7 +28,8 @@ public class PlaylistService {
     }
 
     public Playlist getPlaylist(String playlistId) {
-        return playlistRepository.findById(playlistId)
+        return playlistRepository
+                .findById(playlistId)
                 .orElseThrow(() -> new ResourceNotFoundException("Playlist not found: " + playlistId));
     }
 
@@ -62,9 +63,10 @@ public class PlaylistService {
 
     @Transactional
     public Playlist materializeCatalog(String name) {
-        List<String> trackIds = trackRepository.findAll().stream().map(track -> track.id()).toList();
-        return playlistRepository.save(new Playlist(UUID.randomUUID().toString(), name, trackIds,
-                PlaybackMode.SEQUENTIAL));
+        List<String> trackIds =
+                trackRepository.findAll().stream().map(track -> track.id()).toList();
+        return playlistRepository.save(
+                new Playlist(UUID.randomUUID().toString(), name, trackIds, PlaybackMode.SEQUENTIAL));
     }
 
     @Transactional

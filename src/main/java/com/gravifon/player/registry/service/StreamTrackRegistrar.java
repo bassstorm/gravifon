@@ -1,6 +1,7 @@
 package com.gravifon.player.registry.service;
 
 import com.gravifon.player.registry.identity.TrackIdentity;
+import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.repository.TrackRepository;
@@ -31,8 +32,14 @@ public class StreamTrackRegistrar {
                 if (existing.isPresent()) {
                     tracks.add(existing.get());
                 } else {
-                    Track track = new com.gravifon.player.registry.model.StreamTrack(id, resolved.metadata(),
-                            resolved.durationSeconds(), TrackState.healthy(), resolved.sourceUrl(), null, null);
+                    Track track = new StreamTrack(
+                            id,
+                            resolved.metadata(),
+                            resolved.durationSeconds(),
+                            TrackState.healthy(),
+                            resolved.sourceUrl(),
+                            null,
+                            null);
                     tracks.add(trackRepository.save(track));
                 }
             }

@@ -24,18 +24,53 @@ public class GravifonProperties {
         private Duration refreshTimeout = Duration.ofSeconds(5);
         private int refreshMaxAttempts = 2;
 
-        public boolean isRefreshEnabled() { return refreshEnabled; }
-        public void setRefreshEnabled(boolean refreshEnabled) { this.refreshEnabled = refreshEnabled; }
-        public Duration getRefreshAhead() { return refreshAhead; }
-        public void setRefreshAhead(Duration refreshAhead) { this.refreshAhead = refreshAhead; }
-        public Duration getRefreshInterval() { return refreshInterval; }
-        public void setRefreshInterval(Duration refreshInterval) { this.refreshInterval = refreshInterval; }
-        public String getRefreshScope() { return refreshScope; }
-        public void setRefreshScope(String refreshScope) { this.refreshScope = refreshScope; }
-        public Duration getRefreshTimeout() { return refreshTimeout; }
-        public void setRefreshTimeout(Duration refreshTimeout) { this.refreshTimeout = refreshTimeout; }
-        public int getRefreshMaxAttempts() { return refreshMaxAttempts; }
-        public void setRefreshMaxAttempts(int refreshMaxAttempts) { this.refreshMaxAttempts = refreshMaxAttempts; }
+        public boolean isRefreshEnabled() {
+            return refreshEnabled;
+        }
+
+        public void setRefreshEnabled(boolean refreshEnabled) {
+            this.refreshEnabled = refreshEnabled;
+        }
+
+        public Duration getRefreshAhead() {
+            return refreshAhead;
+        }
+
+        public void setRefreshAhead(Duration refreshAhead) {
+            this.refreshAhead = refreshAhead;
+        }
+
+        public Duration getRefreshInterval() {
+            return refreshInterval;
+        }
+
+        public void setRefreshInterval(Duration refreshInterval) {
+            this.refreshInterval = refreshInterval;
+        }
+
+        public String getRefreshScope() {
+            return refreshScope;
+        }
+
+        public void setRefreshScope(String refreshScope) {
+            this.refreshScope = refreshScope;
+        }
+
+        public Duration getRefreshTimeout() {
+            return refreshTimeout;
+        }
+
+        public void setRefreshTimeout(Duration refreshTimeout) {
+            this.refreshTimeout = refreshTimeout;
+        }
+
+        public int getRefreshMaxAttempts() {
+            return refreshMaxAttempts;
+        }
+
+        public void setRefreshMaxAttempts(int refreshMaxAttempts) {
+            this.refreshMaxAttempts = refreshMaxAttempts;
+        }
     }
 
     public Path getConfigDir() {
@@ -62,4 +97,3 @@ public class GravifonProperties {
         this.startupScanEnabled = startupScanEnabled;
     }
 }
-

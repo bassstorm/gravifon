@@ -6,6 +6,7 @@ import com.gravifon.player.registry.stream.StreamRefreshService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -35,14 +36,16 @@ public class HttpStreamProxy implements StreamProxy {
             throw new IllegalArgumentException("Cannot proxy non-stream track: " + track.id());
         }
         streamTrack = refreshService.ensureFresh(streamTrack);
-        HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(streamTrack.streamUrl())).GET()
+        HttpRequest.Builder builder = HttpRequest.newBuilder(URI.create(streamTrack.streamUrl()))
+                .GET()
                 .timeout(Duration.ofSeconds(15));
         String range = request.getHeader("Range");
         if (range != null && !range.isBlank()) {
             builder.header("Range", range);
         }
         try {
-            HttpResponse<java.io.InputStream> upstream = client.send(builder.build(), HttpResponse.BodyHandlers.ofInputStream());
+            HttpResponse<InputStream> upstream =
+                    client.send(builder.build(), HttpResponse.BodyHandlers.ofInputStream());
             response.setStatus(upstream.statusCode());
             copyHeader(upstream, response, "Content-Type");
             copyHeader(upstream, response, "Content-Length");

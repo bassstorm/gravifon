@@ -43,6 +43,7 @@ class TrackRegistryTest {
 
         TrackRegistry registry = new TrackRegistry(properties, repository, coordinator, List.of());
 
-        assertThat(registry.resolveTrackPath("t1")).contains(musicRoot.resolve("song.mp3").normalize());
+        assertThat(registry.resolveTrackPath("t1"))
+                .contains(musicRoot.resolve("song.mp3").normalize());
     }
 }

@@ -9,6 +9,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.io.Serializable;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
@@ -19,14 +20,16 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 public class TrackMetadataEntity {
-        @EmbeddedId
-        @AttributeOverrides({
-            @AttributeOverride(name = "trackId", column = @Column(name = "track_id")),
-            @AttributeOverride(name = "key", column = @Column(name = "key")),
-            @AttributeOverride(name = "order", column = @Column(name = "ord"))
-        })
+    @EmbeddedId
+    @AttributeOverrides({
+        @AttributeOverride(name = "trackId", column = @Column(name = "track_id")),
+        @AttributeOverride(name = "key", column = @Column(name = "key")),
+        @AttributeOverride(name = "order", column = @Column(name = "ord"))
+    })
     private TrackMetadataId id;
+
     private String value;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "track_id", insertable = false, updatable = false)
     private TrackEntity track;
@@ -36,14 +39,18 @@ public class TrackMetadataEntity {
         this.value = value;
     }
 
-    public String key() { return id.key(); }
-    public int order() { return id.order(); }
+    public String key() {
+        return id.key();
+    }
+
+    public int order() {
+        return id.order();
+    }
 
     void attach(TrackEntity owner) {
         this.track = owner;
         this.id = new TrackMetadataId(owner.id(), id.key(), id.order());
     }
 
-    public record TrackMetadataId(String trackId, String key, int order) implements java.io.Serializable {
-    }
+    public record TrackMetadataId(String trackId, String key, int order) implements Serializable {}
 }

@@ -1,10 +1,17 @@
 package com.gravifon.player.playback.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
+
 import com.gravifon.player.playback.model.PlaybackMode;
+import com.gravifon.player.playback.model.PlaybackState;
 import com.gravifon.player.playback.model.TransportState;
+import com.gravifon.player.playback.repository.PlaybackStateRepository;
 import com.gravifon.player.playlist.model.Playlist;
 import com.gravifon.player.playlist.service.PlaylistService;
-import com.gravifon.player.playback.repository.PlaybackStateRepository;
+import com.gravifon.player.registry.model.FileTrack;
+import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.repository.TrackRepository;
 import java.util.List;
@@ -13,10 +20,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.when;
 
 class PlaybackServiceTest {
 
@@ -32,10 +35,7 @@ class PlaybackServiceTest {
         trackRepository = Mockito.mock(TrackRepository.class);
         stateRepository = Mockito.mock(PlaybackStateRepository.class);
         when(stateRepository.find(Mockito.any())).thenReturn(Optional.empty());
-        selectorRegistry = new TrackSelectorRegistry(List.of(
-                new SequentialTrackSelector(),
-                new RandomTrackSelector()
-        ));
+        selectorRegistry = new TrackSelectorRegistry(List.of(new SequentialTrackSelector(), new RandomTrackSelector()));
 
         Playlist active = new Playlist("all-tracks", "All Tracks", List.of("t1", "t2"));
         when(playlistService.getActive()).thenReturn(active);
@@ -117,7 +117,8 @@ class PlaybackServiceTest {
 
         assertThat(playbackService.reportPosition("t1", 42).positionSeconds()).isEqualTo(42);
         assertThat(playbackService.reportPosition("t1", 100).positionSeconds()).isEqualTo(42);
-        assertThat(playbackService.reportPosition("stale", 42).positionSeconds()).isEqualTo(42);
+        assertThat(playbackService.reportPosition("stale", 42).positionSeconds())
+                .isEqualTo(42);
     }
 
     @Test
@@ -149,8 +150,8 @@ class PlaybackServiceTest {
         Playlist playlist = new Playlist("p1", "Playlist", List.of("t1"), PlaybackMode.RANDOM);
         when(persistentPlaylists.getActive()).thenReturn(playlist);
         when(persistentPlaylists.select("p1")).thenReturn(playlist);
-        when(tracks.findById("t1")).thenReturn(Optional.of(new com.gravifon.player.registry.model.FileTrack(
-                "t1", Map.of(), 120L, TrackState.healthy(), "t1.mp3", "mp3")));
+        when(tracks.findById("t1"))
+                .thenReturn(Optional.of(new FileTrack("t1", Map.of(), 120L, TrackState.healthy(), "t1.mp3", "mp3")));
         PlaybackService persistentPlayback = new PlaybackService(persistentPlaylists, tracks, states, selectorRegistry);
 
         assertThat(persistentPlayback.selectPlaylist("p1").playbackMode()).isEqualTo(PlaybackMode.RANDOM);
@@ -166,8 +167,9 @@ class PlaybackServiceTest {
         PlaylistService persistentPlaylists = Mockito.mock(PlaylistService.class);
         TrackRepository tracks = Mockito.mock(TrackRepository.class);
         Playlist playlist = new Playlist("p1", "Playlist", List.of("t1"));
-        when(states.find("default")).thenReturn(Optional.of(new com.gravifon.player.playback.model.PlaybackState(
-                "p1", "t1", PlaybackMode.SEQUENTIAL, TransportState.PLAYING, 37)));
+        when(states.find("default"))
+                .thenReturn(Optional.of(
+                        new PlaybackState("p1", "t1", PlaybackMode.SEQUENTIAL, TransportState.PLAYING, 37)));
         when(persistentPlaylists.select("p1")).thenReturn(playlist);
         when(persistentPlaylists.getActive()).thenReturn(playlist);
         when(tracks.findById("t1")).thenReturn(Optional.of(track("t1", 120L)));
@@ -180,9 +182,8 @@ class PlaybackServiceTest {
         Mockito.verify(persistentPlaylists).activate("p1");
     }
 
-    private com.gravifon.player.registry.model.Track track(String id, long duration) {
-        return new com.gravifon.player.registry.model.FileTrack(id,
-                Map.of(), duration,
-                com.gravifon.player.registry.model.TrackState.healthy(), id + ".mp3", "mp3");
+    private Track track(String id, long duration) {
+        return new FileTrack(
+                id, Map.of(), duration, com.gravifon.player.registry.model.TrackState.healthy(), id + ".mp3", "mp3");
     }
 }

@@ -13,17 +13,30 @@ import lombok.experimental.Accessors;
 @Accessors(fluent = true)
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 public class PlaybackStateEntity {
-    @Id private String sessionId;
+    @Id
+    private String sessionId;
+
     private String activePlaylistId;
     private String currentTrackId;
     private String transportState;
     private long positionSeconds;
     private String positionOrigin;
     private long updatedAt;
-    public PlaybackStateEntity(String sessionId, String activePlaylistId, String currentTrackId, String transportState,
-                               long positionSeconds, String positionOrigin, long updatedAt) {
-        this.sessionId = sessionId; this.activePlaylistId = activePlaylistId; this.currentTrackId = currentTrackId;
-        this.transportState = transportState; this.positionSeconds = positionSeconds; this.positionOrigin = positionOrigin;
+
+    public PlaybackStateEntity(
+            String sessionId,
+            String activePlaylistId,
+            String currentTrackId,
+            String transportState,
+            long positionSeconds,
+            String positionOrigin,
+            long updatedAt) {
+        this.sessionId = sessionId;
+        this.activePlaylistId = activePlaylistId;
+        this.currentTrackId = currentTrackId;
+        this.transportState = transportState;
+        this.positionSeconds = positionSeconds;
+        this.positionOrigin = positionOrigin;
         this.updatedAt = updatedAt;
     }
 }

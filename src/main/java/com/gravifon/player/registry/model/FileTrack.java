@@ -11,8 +11,8 @@ public record FileTrack(
         Long durationSeconds,
         TrackState state,
         String relPath,
-        String format
-) implements Track {
+        String format)
+        implements Track {
 
     public FileTrack {
         Objects.requireNonNull(id, "id");
@@ -23,8 +23,13 @@ public record FileTrack(
                 .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, entry -> List.copyOf(entry.getValue())));
     }
 
-    public FileTrack(TrackId trackId, Map<String, List<String>> metadata, Long durationSeconds,
-                     TrackState state, String relPath, String format) {
+    public FileTrack(
+            TrackId trackId,
+            Map<String, List<String>> metadata,
+            Long durationSeconds,
+            TrackState state,
+            String relPath,
+            String format) {
         this(trackId.value(), metadata, durationSeconds, state, relPath, format);
     }
 

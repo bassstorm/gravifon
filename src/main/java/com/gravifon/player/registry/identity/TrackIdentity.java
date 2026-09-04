@@ -8,8 +8,7 @@ import java.util.HexFormat;
 
 public final class TrackIdentity {
 
-    private TrackIdentity() {
-    }
+    private TrackIdentity() {}
 
     public static String forFile(Path relativePath) {
         if (relativePath == null) {
@@ -27,8 +26,8 @@ public final class TrackIdentity {
 
     private static String sha1(String value) {
         try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1")
-                    .digest(value.getBytes(StandardCharsets.UTF_8)));
+            return HexFormat.of()
+                    .formatHex(MessageDigest.getInstance("SHA-1").digest(value.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("SHA-1 algorithm unavailable", exception);
         }

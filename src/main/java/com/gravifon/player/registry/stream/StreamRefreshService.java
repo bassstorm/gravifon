@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import lombok.RequiredArgsConstructor;
 import org.jmolecules.architecture.onion.simplified.ApplicationRing;
 import org.springframework.stereotype.Service;
@@ -56,18 +57,18 @@ public class StreamRefreshService {
             scope.addAll(active.trackIds());
         }
         for (String trackId : scope) {
-            trackRepository.findById(trackId)
-                    .ifPresent(track -> {
-                        if (track instanceof StreamTrack streamTrack) {
-                            if (streamTrack.expiresAfter() == null || !streamTrack.expiresAfter().isAfter(threshold)) {
-                                try {
-                                    ensureFresh(streamTrack, now);
-                                } catch (IOException ignored) {
-                                    // Request-time fallback retries after a bounded scheduler attempt.
-                                }
-                            }
+            trackRepository.findById(trackId).ifPresent(track -> {
+                if (track instanceof StreamTrack streamTrack) {
+                    if (streamTrack.expiresAfter() == null
+                            || !streamTrack.expiresAfter().isAfter(threshold)) {
+                        try {
+                            ensureFresh(streamTrack, now);
+                        } catch (IOException ignored) {
+                            // Request-time fallback retries after a bounded scheduler attempt.
                         }
-                    });
+                    }
+                }
+            });
         }
     }
 
@@ -84,7 +85,8 @@ public class StreamRefreshService {
         int currentIndex = active.trackIds().indexOf(state.currentTrackId());
         if (currentIndex >= 0 && !active.trackIds().isEmpty()) {
             scope.add(state.currentTrackId());
-            scope.add(active.trackIds().get((currentIndex + 1) % active.trackIds().size()));
+            scope.add(
+                    active.trackIds().get((currentIndex + 1) % active.trackIds().size()));
         }
     }
 
@@ -103,7 +105,8 @@ public class StreamRefreshService {
             return await(existing);
         }
         try {
-            StreamTrack current = trackRegistry.findTrackById(track.id())
+            StreamTrack current = trackRegistry
+                    .findTrackById(track.id())
                     .filter(StreamTrack.class::isInstance)
                     .map(StreamTrack.class::cast)
                     .orElse(track);
@@ -115,13 +118,16 @@ public class StreamRefreshService {
             for (int attempt = 0; attempt < properties.getStreams().getRefreshMaxAttempts(); attempt++) {
                 try {
                     StreamResolver resolver = resolverRegistry.resolverFor(current);
-                    StreamResolver.ResolvedStream resolved = CompletableFuture
-                            .supplyAsync(() -> resolver.refreshStream(current))
+                    StreamResolver.ResolvedStream resolved = CompletableFuture.supplyAsync(
+                                    () -> resolver.refreshStream(current))
                             .get(properties.getStreams().getRefreshTimeout().toMillis(), TimeUnit.MILLISECONDS);
-                    if (resolved == null || resolved.streamUrl() == null || resolved.streamUrl().isBlank()) {
+                    if (resolved == null
+                            || resolved.streamUrl() == null
+                            || resolved.streamUrl().isBlank()) {
                         throw new IOException("Resolver returned no stream URL");
                     }
-                    Track updated = trackRegistry.updateStream(current.id(), resolved.streamUrl(), resolved.expiresAfter());
+                    Track updated =
+                            trackRegistry.updateStream(current.id(), resolved.streamUrl(), resolved.expiresAfter());
                     StreamTrack updatedStream = (StreamTrack) updated;
                     refresh.complete(updatedStream);
                     return updatedStream;
@@ -130,9 +136,11 @@ public class StreamRefreshService {
                 }
             }
             String message = lastFailure == null ? "Stream refresh failed" : failureMessage(lastFailure);
-            boolean timedOut = lastFailure instanceof java.util.concurrent.TimeoutException
-                    || lastFailure != null && lastFailure.getCause() instanceof java.util.concurrent.TimeoutException;
-            IOException failure = fail(current, timedOut ? "Stream refresh timed out" : message,
+            boolean timedOut = lastFailure instanceof TimeoutException
+                    || lastFailure != null && lastFailure.getCause() instanceof TimeoutException;
+            IOException failure = fail(
+                    current,
+                    timedOut ? "Stream refresh timed out" : message,
                     timedOut ? "STREAM_REFRESH_TIMEOUT" : "STREAM_UNREACHABLE");
             refresh.completeExceptionally(failure);
             throw failure;
@@ -144,7 +152,8 @@ public class StreamRefreshService {
     private StreamTrack await(CompletableFuture<StreamTrack> refresh) throws IOException {
         try {
             long timeout = properties.getStreams().getRefreshTimeout().toMillis()
-                    * Math.max(1, properties.getStreams().getRefreshMaxAttempts()) + 1000;
+                            * Math.max(1, properties.getStreams().getRefreshMaxAttempts())
+                    + 1000;
             return refresh.get(timeout, TimeUnit.MILLISECONDS);
         } catch (Exception failure) {
             Throwable cause = failure.getCause() == null ? failure : failure.getCause();

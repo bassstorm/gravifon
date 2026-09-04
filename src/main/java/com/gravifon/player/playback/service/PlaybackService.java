@@ -6,10 +6,11 @@ import com.gravifon.player.playback.model.PlaybackSession;
 import com.gravifon.player.playback.model.PlaybackState;
 import com.gravifon.player.playback.model.TrackSelector;
 import com.gravifon.player.playback.model.TransportState;
+import com.gravifon.player.playback.repository.PlaybackStateRepository;
 import com.gravifon.player.playlist.model.Playlist;
 import com.gravifon.player.playlist.service.PlaylistService;
+import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.repository.TrackRepository;
-import com.gravifon.player.playback.repository.PlaybackStateRepository;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.Optional;
@@ -43,8 +44,13 @@ public class PlaybackService {
                     return;
                 }
             }
-            PlaybackState enrichedState = new PlaybackState(state.activePlaylistId(), state.currentTrackId(),
-                    mode, state.transportState(), state.positionSeconds(), state.positionOrigin());
+            PlaybackState enrichedState = new PlaybackState(
+                    state.activePlaylistId(),
+                    state.currentTrackId(),
+                    mode,
+                    state.transportState(),
+                    state.positionSeconds(),
+                    state.positionOrigin());
             session = PlaybackSession.fromState(SESSION_ID, enrichedState);
         });
     }
@@ -115,7 +121,7 @@ public class PlaybackService {
     private Optional<Long> currentTrackDurationSeconds() {
         return Optional.ofNullable(session.currentTrackId())
                 .flatMap(trackRepository::findById)
-                .map(com.gravifon.player.registry.model.Track::durationSeconds);
+                .map(Track::durationSeconds);
     }
 
     private List<String> activeTrackIds() {
@@ -133,4 +139,3 @@ public class PlaybackService {
         }
     }
 }
-

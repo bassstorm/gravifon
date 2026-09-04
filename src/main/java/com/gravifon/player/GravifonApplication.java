@@ -15,4 +15,3 @@ public class GravifonApplication {
         SpringApplication.run(GravifonApplication.class, args);
     }
 }
-

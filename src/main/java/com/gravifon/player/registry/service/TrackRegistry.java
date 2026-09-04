@@ -11,6 +11,7 @@ import com.gravifon.player.registry.repository.TrackRepository;
 import com.gravifon.player.registry.scan.LibraryScanCoordinator;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,12 +46,14 @@ public class TrackRegistry {
         return findTrackById(trackId)
                 .filter(FileTrack.class::isInstance)
                 .map(FileTrack.class::cast)
-                .map(fileTrack -> properties.getMusicRoot().resolve(fileTrack.relPath()).normalize());
+                .map(fileTrack ->
+                        properties.getMusicRoot().resolve(fileTrack.relPath()).normalize());
     }
 
     @Transactional
     public Track updateStream(String trackId, String streamUrl, Instant expiresAfter) {
-        Track track = findTrackById(trackId).orElseThrow(() -> new IllegalArgumentException("Track not found: " + trackId));
+        Track track =
+                findTrackById(trackId).orElseThrow(() -> new IllegalArgumentException("Track not found: " + trackId));
         if (track instanceof StreamTrack streamTrack) {
             return trackRepository.save(streamTrack.withStream(streamUrl, expiresAfter));
         }
@@ -64,27 +67,34 @@ public class TrackRegistry {
 
     @Transactional
     public Track markStreamUnreachable(String trackId, String errorKind, String message) {
-        Track track = findTrackById(trackId).orElseThrow(() -> new IllegalArgumentException("Track not found: " + trackId));
+        Track track =
+                findTrackById(trackId).orElseThrow(() -> new IllegalArgumentException("Track not found: " + trackId));
         TrackState state = new TrackState(true, new TrackError(errorKind, message, Instant.now(), "STREAM_REFRESH"));
         return trackRepository.save(track.withState(state));
     }
 
     @Transactional
     public Track updateMetadata(String trackId, Map<String, List<String>> metadata) {
-        Track track = findTrackById(trackId).orElseThrow(() -> new IllegalArgumentException("Track not found: " + trackId));
-        Map<String, List<String>> normalized = new java.util.LinkedHashMap<>();
+        Track track =
+                findTrackById(trackId).orElseThrow(() -> new IllegalArgumentException("Track not found: " + trackId));
+        Map<String, List<String>> normalized = new LinkedHashMap<>();
         metadata.forEach((key, values) -> normalized.put(key, List.copyOf(values)));
         Track updated = track.withMetadata(normalized);
-        writeBackHandlers.stream().filter(handler -> handler.supports(updated))
-                .findFirst().ifPresent(handler -> handler.writeBack(updated, normalized));
+        writeBackHandlers.stream()
+                .filter(handler -> handler.supports(updated))
+                .findFirst()
+                .ifPresent(handler -> handler.writeBack(updated, normalized));
         return trackRepository.save(updated);
     }
 
     @Transactional
     public Track reportState(String trackId, String kind, String message, boolean clear) {
-        Track track = findTrackById(trackId).orElseThrow(() -> new IllegalArgumentException("Track not found: " + trackId));
-        TrackState state = clear ? TrackState.healthy() : new TrackState(true,
-                new TrackError(kind == null ? "CLIENT_ERROR" : kind, message, Instant.now(), "CLIENT"));
+        Track track =
+                findTrackById(trackId).orElseThrow(() -> new IllegalArgumentException("Track not found: " + trackId));
+        TrackState state = clear
+                ? TrackState.healthy()
+                : new TrackState(
+                        true, new TrackError(kind == null ? "CLIENT_ERROR" : kind, message, Instant.now(), "CLIENT"));
         return trackRepository.save(track.withState(state));
     }
 }

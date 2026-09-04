@@ -37,11 +37,15 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
         } else {
             correlationId = UUID.randomUUID().toString();
             if (isApiRequest(request)) {
-                log.warn("Missing CorrelationId header/query for API request {}. Generated fallback correlation id: {}",
-                        request.getRequestURI(), correlationId);
+                log.warn(
+                        "Missing CorrelationId header/query for API request {}. Generated fallback correlation id: {}",
+                        request.getRequestURI(),
+                        correlationId);
             } else {
-                log.debug("Missing CorrelationId for non-API request {}. Generated fallback correlation id: {}",
-                        request.getRequestURI(), correlationId);
+                log.debug(
+                        "Missing CorrelationId for non-API request {}. Generated fallback correlation id: {}",
+                        request.getRequestURI(),
+                        correlationId);
             }
         }
 

@@ -9,8 +9,10 @@ import static org.mockito.Mockito.when;
 import com.gravifon.player.playback.model.PlaybackMode;
 import com.gravifon.player.playlist.model.Playlist;
 import com.gravifon.player.playlist.repository.PlaylistRepository;
+import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.repository.TrackRepository;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -63,7 +65,8 @@ class PlaylistServiceTest {
 
         assertThat(first.trackIds()).containsExactly("shared");
         assertThat(second.trackIds()).containsExactly("shared");
-        assertThat(tracks.findById("shared")).containsSame(tracks.findById("shared").orElseThrow());
+        assertThat(tracks.findById("shared"))
+                .containsSame(tracks.findById("shared").orElseThrow());
     }
 
     @Test
@@ -83,8 +86,8 @@ class PlaylistServiceTest {
     @Test
     void removingDuplicateEntryRemovesOnlyOneOccurrence() {
         PlaylistRepository playlists = mock(PlaylistRepository.class);
-        when(playlists.findById("p1")).thenReturn(Optional.of(
-                new Playlist("p1", "Mix", List.of("a", "b", "a"), PlaybackMode.SEQUENTIAL)));
+        when(playlists.findById("p1"))
+                .thenReturn(Optional.of(new Playlist("p1", "Mix", List.of("a", "b", "a"), PlaybackMode.SEQUENTIAL)));
         when(playlists.save(any(Playlist.class))).thenAnswer(invocation -> invocation.getArgument(0));
         PlaylistService service = new PlaylistService(playlists, tracks("a", "b"));
 
@@ -95,18 +98,17 @@ class PlaylistServiceTest {
 
     private TrackRepository tracks(String... ids) {
         TrackRepository repository = mock(TrackRepository.class);
-        List<Track> storedTracks = new java.util.ArrayList<>();
+        List<Track> storedTracks = new ArrayList<>();
         for (String id : ids) {
-            Track track = new com.gravifon.player.registry.model.FileTrack(id,
-                    Map.of(), 1L,
-                    com.gravifon.player.registry.model.TrackState.healthy(), id + ".mp3", "mp3");
+            Track track = new FileTrack(
+                    id, Map.of(), 1L, com.gravifon.player.registry.model.TrackState.healthy(), id + ".mp3", "mp3");
             storedTracks.add(track);
             when(repository.findById(id)).thenReturn(Optional.of(track));
         }
         when(repository.findAll()).thenReturn(storedTracks);
         when(repository.findAllById(any(Iterable.class))).thenAnswer(invocation -> {
             Iterable<String> requestedIds = invocation.getArgument(0);
-            List<String> idList = new java.util.ArrayList<>();
+            List<String> idList = new ArrayList<>();
             requestedIds.forEach(idList::add);
             return storedTracks.stream().filter(t -> idList.contains(t.id())).toList();
         });

@@ -45,8 +45,8 @@ public class FileLibraryScanner implements LibraryScanner {
         String relativePath = root.relativize(path).toString().replace('\\', '/');
         try {
             MetadataExtractor.ExtractedMetadata metadata = metadataExtractor.extract(path);
-                return new ScanFile(relativePath, extension(path), metadata.readable(), metadata.values(),
-                    metadata.durationSeconds());
+            return new ScanFile(
+                    relativePath, extension(path), metadata.readable(), metadata.values(), metadata.durationSeconds());
         } catch (RuntimeException exception) {
             log.warn("Unable to read file {} during scan: {}", path, exception.toString());
             return new ScanFile(relativePath, extension(path), false, java.util.Map.of(), null);
@@ -61,6 +61,7 @@ public class FileLibraryScanner implements LibraryScanner {
         String filename = path.getFileName().toString();
         int dot = filename.lastIndexOf('.');
         return dot > 0 && dot < filename.length() - 1
-                ? filename.substring(dot + 1).toLowerCase(Locale.ROOT) : "";
+                ? filename.substring(dot + 1).toLowerCase(Locale.ROOT)
+                : "";
     }
 }

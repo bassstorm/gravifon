@@ -4,4 +4,3 @@ public enum PlaybackMode {
     SEQUENTIAL,
     RANDOM
 }
-

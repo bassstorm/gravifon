@@ -5,4 +5,3 @@ public enum TransportState {
     PLAYING,
     PAUSED
 }
-

@@ -1,12 +1,22 @@
 package com.gravifon.player.api.controller;
 
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.gravifon.player.api.error.ApiExceptionHandler;
+import com.gravifon.player.observability.CorrelationIdFilter;
+import com.gravifon.player.playback.service.PlaybackService;
+import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.service.TrackRegistry;
+import com.gravifon.player.streaming.AudioStreamingService;
 import com.gravifon.player.streaming.StreamProxy;
-import com.gravifon.player.observability.CorrelationIdFilter;
-import com.gravifon.player.playback.service.PlaybackService;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -20,16 +30,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 @WebMvcTest(controllers = AudioStreamingController.class)
-@Import({ ApiExceptionHandler.class, CorrelationIdFilter.class, com.gravifon.player.streaming.AudioStreamingService.class })
+@Import({ApiExceptionHandler.class, CorrelationIdFilter.class, AudioStreamingService.class})
 class AudioStreamingControllerWebMvcTest {
 
     @Autowired
@@ -117,7 +119,6 @@ class AudioStreamingControllerWebMvcTest {
     }
 
     private Track fileTrack(String id, String format) {
-        return new com.gravifon.player.registry.model.FileTrack(id, java.util.Map.of(), null, TrackState.healthy(),
-                id + "." + format, format);
+        return new FileTrack(id, java.util.Map.of(), null, TrackState.healthy(), id + "." + format, format);
     }
 }

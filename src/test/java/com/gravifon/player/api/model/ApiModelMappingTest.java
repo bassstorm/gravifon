@@ -1,23 +1,23 @@
 package com.gravifon.player.api.model;
 
-import com.gravifon.player.registry.model.Track;
-import com.gravifon.player.registry.model.TrackState;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.gravifon.player.playback.model.PlaybackMode;
 import com.gravifon.player.playback.model.PlaybackState;
 import com.gravifon.player.playback.model.TransportState;
 import com.gravifon.player.playlist.model.Playlist;
+import com.gravifon.player.registry.model.FileTrack;
+import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.model.TrackState;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class ApiModelMappingTest {
 
     @Test
     void trackResponse_fromMapsFields() {
-        Track track = new com.gravifon.player.registry.model.FileTrack("track-1", Map.of(), 42L, TrackState.healthy(),
-            "a.mp3", "mp3");
+        Track track = new FileTrack("track-1", Map.of(), 42L, TrackState.healthy(), "a.mp3", "mp3");
 
         TrackResponse response = TrackResponse.from(track);
 
@@ -51,4 +51,3 @@ class ApiModelMappingTest {
         assertThat(response.positionSeconds()).isEqualTo(8);
     }
 }
-

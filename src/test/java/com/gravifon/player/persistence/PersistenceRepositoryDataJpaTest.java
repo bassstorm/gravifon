@@ -2,12 +2,14 @@ package com.gravifon.player.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.gravifon.player.config.SqliteDataSourceConfiguration;
 import com.gravifon.player.playback.model.PlaybackMode;
 import com.gravifon.player.playback.model.PlaybackState;
 import com.gravifon.player.playback.model.TransportState;
 import com.gravifon.player.playback.repository.JpaPlaybackStateRepository;
 import com.gravifon.player.playlist.model.Playlist;
 import com.gravifon.player.playlist.repository.JpaPlaylistRepository;
+import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.repository.JpaTrackRepository;
@@ -24,10 +26,10 @@ import org.springframework.test.context.DynamicPropertySource;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({
-        com.gravifon.player.config.SqliteDataSourceConfiguration.class,
-        JpaTrackRepository.class,
-        JpaPlaylistRepository.class,
-        JpaPlaybackStateRepository.class
+    SqliteDataSourceConfiguration.class,
+    JpaTrackRepository.class,
+    JpaPlaylistRepository.class,
+    JpaPlaybackStateRepository.class
 })
 class PersistenceRepositoryDataJpaTest {
 
@@ -54,11 +56,13 @@ class PersistenceRepositoryDataJpaTest {
         Track saved = tracks.save(track);
 
         assertThat(saved.metadata()).containsEntry("GENRE", List.of("ambient", "downtempo"));
-        assertThat(tracks.findById("track-1")).get().satisfies(reloaded ->
-                assertThat(reloaded.metadata()).containsEntry("GENRE", List.of("ambient", "downtempo")));
-        assertThat(tracks.findById(com.gravifon.player.registry.model.TrackId.of("track-1"))).isPresent();
+        assertThat(tracks.findById("track-1")).get().satisfies(reloaded -> assertThat(reloaded.metadata())
+                .containsEntry("GENRE", List.of("ambient", "downtempo")));
+        assertThat(tracks.findById(com.gravifon.player.registry.model.TrackId.of("track-1")))
+                .isPresent();
         assertThat(tracks.existsById("track-1")).isTrue();
-        assertThat(tracks.existsById(com.gravifon.player.registry.model.TrackId.of("track-1"))).isTrue();
+        assertThat(tracks.existsById(com.gravifon.player.registry.model.TrackId.of("track-1")))
+                .isTrue();
         assertThat(tracks.existsById("non-existent")).isFalse();
         assertThat(tracks.findAllById(List.of("track-1", "non-existent"))).hasSize(1);
     }
@@ -76,7 +80,8 @@ class PersistenceRepositoryDataJpaTest {
             assertThat(reloaded.trackIds()).containsExactly("track-1");
             assertThat(reloaded.playbackMode()).isEqualTo(PlaybackMode.RANDOM);
         });
-        assertThat(playlists.findById(com.gravifon.player.playlist.model.PlaylistId.of("playlist-1"))).isPresent();
+        assertThat(playlists.findById(com.gravifon.player.playlist.model.PlaylistId.of("playlist-1")))
+                .isPresent();
     }
 
     @Test
@@ -89,10 +94,10 @@ class PersistenceRepositoryDataJpaTest {
 
     @Test
     void playbackStateSaveUpsertsSessionAndPreservesOrigin() {
-        PlaybackState first = new PlaybackState("playlist-1", "track-1", PlaybackMode.SEQUENTIAL,
-                TransportState.PAUSED, 12, "OBSERVED");
-        PlaybackState second = new PlaybackState("playlist-1", "track-1", PlaybackMode.SEQUENTIAL,
-                TransportState.PAUSED, 18, "REPORTED");
+        PlaybackState first = new PlaybackState(
+                "playlist-1", "track-1", PlaybackMode.SEQUENTIAL, TransportState.PAUSED, 12, "OBSERVED");
+        PlaybackState second = new PlaybackState(
+                "playlist-1", "track-1", PlaybackMode.SEQUENTIAL, TransportState.PAUSED, 18, "REPORTED");
 
         playbackStates.save("default", first, first.positionOrigin());
         playbackStates.save("default", second, second.positionOrigin());
@@ -104,8 +109,7 @@ class PersistenceRepositoryDataJpaTest {
     }
 
     private Track fileTrack(String id) {
-        return new com.gravifon.player.registry.model.FileTrack(id,
-                Map.of("GENRE", List.of("ambient", "downtempo")), 120L,
-                TrackState.healthy(), id + ".mp3", "mp3");
+        return new FileTrack(
+                id, Map.of("GENRE", List.of("ambient", "downtempo")), 120L, TrackState.healthy(), id + ".mp3", "mp3");
     }
 }

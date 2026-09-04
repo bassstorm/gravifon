@@ -1,5 +1,7 @@
 package com.gravifon.player;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.gravifon.player.playback.model.PlaybackMode;
 import com.gravifon.player.playback.model.PlaybackState;
 import com.gravifon.player.playback.model.TransportState;
@@ -7,6 +9,7 @@ import com.gravifon.player.playback.repository.PlaybackStateRepository;
 import com.gravifon.player.playback.service.PlaybackService;
 import com.gravifon.player.playlist.model.Playlist;
 import com.gravifon.player.playlist.repository.PlaylistRepository;
+import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.repository.TrackRepository;
@@ -18,8 +21,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class PlaybackRestartIntegrationTest {
 
@@ -39,11 +40,13 @@ class PlaybackRestartIntegrationTest {
             TrackRepository tracks = first.getBean(TrackRepository.class);
             PlaylistRepository playlists = first.getBean(PlaylistRepository.class);
             PlaybackStateRepository states = first.getBean(PlaybackStateRepository.class);
-            Track track = tracks.save(new com.gravifon.player.registry.model.FileTrack("t1", Map.of(), 180L, TrackState.healthy(),
-                    "track.mp3", "mp3"));
-            Playlist playlist = playlists.save(new Playlist("p1", "Playlist", List.of(track.id()), PlaybackMode.SEQUENTIAL));
-            states.save("default", new PlaybackState(playlist.id(), track.id(), PlaybackMode.SEQUENTIAL,
-                    TransportState.PLAYING, 42), "REPORTED");
+            Track track = tracks.save(new FileTrack("t1", Map.of(), 180L, TrackState.healthy(), "track.mp3", "mp3"));
+            Playlist playlist =
+                    playlists.save(new Playlist("p1", "Playlist", List.of(track.id()), PlaybackMode.SEQUENTIAL));
+            states.save(
+                    "default",
+                    new PlaybackState(playlist.id(), track.id(), PlaybackMode.SEQUENTIAL, TransportState.PLAYING, 42),
+                    "REPORTED");
         }
 
         try (ConfigurableApplicationContext restarted = context(properties)) {
@@ -58,8 +61,8 @@ class PlaybackRestartIntegrationTest {
     private ConfigurableApplicationContext context(String... properties) {
         SpringApplication application = new SpringApplication(GravifonApplication.class);
         String[] arguments = java.util.Arrays.stream(properties)
-            .map(property -> "--" + property)
-            .toArray(String[]::new);
+                .map(property -> "--" + property)
+                .toArray(String[]::new);
         return application.run(arguments);
     }
 }

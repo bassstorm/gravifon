@@ -11,8 +11,8 @@ public record PlaybackSession(
         PlaybackMode playbackMode,
         TransportState transportState,
         long observedPositionSeconds,
-        Long reportedPositionSeconds
-) implements AggregateRoot<PlaybackSession, PlaybackSession.SessionId> {
+        Long reportedPositionSeconds)
+        implements AggregateRoot<PlaybackSession, PlaybackSession.SessionId> {
 
     public record SessionId(String value) implements Identifier {
         public static SessionId of(String value) {
@@ -21,8 +21,8 @@ public record PlaybackSession(
     }
 
     public static PlaybackSession initial(String sessionId) {
-        return new PlaybackSession(SessionId.of(sessionId), null, null, PlaybackMode.SEQUENTIAL,
-                TransportState.STOPPED, 0L, null);
+        return new PlaybackSession(
+                SessionId.of(sessionId), null, null, PlaybackMode.SEQUENTIAL, TransportState.STOPPED, 0L, null);
     }
 
     public static PlaybackSession fromState(String sessionId, PlaybackState state) {
@@ -37,8 +37,7 @@ public record PlaybackSession(
                 state.playbackMode(),
                 state.transportState() == TransportState.PLAYING ? TransportState.PAUSED : state.transportState(),
                 state.positionSeconds(),
-                reported ? state.positionSeconds() : null
-        );
+                reported ? state.positionSeconds() : null);
     }
 
     @Override
@@ -54,11 +53,11 @@ public record PlaybackSession(
                 playbackMode,
                 transportState,
                 reported ? reportedPositionSeconds : observedPositionSeconds,
-                reported ? "REPORTED" : "OBSERVED"
-        );
+                reported ? "REPORTED" : "OBSERVED");
     }
 
-    public PlaybackSession selectPlaylist(String newPlaylistId, PlaybackMode mode, List<String> activeTrackIds, TrackSelector selector) {
+    public PlaybackSession selectPlaylist(
+            String newPlaylistId, PlaybackMode mode, List<String> activeTrackIds, TrackSelector selector) {
         String initialTrack = selector.selectInitialTrack(activeTrackIds).orElse(null);
         return new PlaybackSession(id, newPlaylistId, initialTrack, mode, transportState, 0L, null);
     }
@@ -74,11 +73,18 @@ public record PlaybackSession(
         if (newMode == null) {
             throw new IllegalArgumentException("Playback mode is required");
         }
-        return new PlaybackSession(id, activePlaylistId, currentTrackId, newMode, transportState,
-                observedPositionSeconds, reportedPositionSeconds);
+        return new PlaybackSession(
+                id,
+                activePlaylistId,
+                currentTrackId,
+                newMode,
+                transportState,
+                observedPositionSeconds,
+                reportedPositionSeconds);
     }
 
-    public PlaybackSession setTransportState(TransportState newTransport, List<String> activeTrackIds, TrackSelector selector) {
+    public PlaybackSession setTransportState(
+            TransportState newTransport, List<String> activeTrackIds, TrackSelector selector) {
         if (newTransport == null) {
             throw new IllegalArgumentException("Transport state is required");
         }
@@ -99,7 +105,8 @@ public record PlaybackSession(
         if (activeTrackIds.isEmpty()) {
             return new PlaybackSession(id, activePlaylistId, null, playbackMode, transportState, 0L, null);
         }
-        String nextTrack = selector.selectNextTrack(activeTrackIds, currentTrackId).orElse(null);
+        String nextTrack =
+                selector.selectNextTrack(activeTrackIds, currentTrackId).orElse(null);
         return new PlaybackSession(id, activePlaylistId, nextTrack, playbackMode, transportState, 0L, null);
     }
 
@@ -107,28 +114,53 @@ public record PlaybackSession(
         if (positionSeconds < 0) {
             throw new IllegalArgumentException("Position must be >= 0 seconds");
         }
-        if (trackId == null || !trackId.equals(currentTrackId) || positionSeconds > observedPositionSeconds
+        if (trackId == null
+                || !trackId.equals(currentTrackId)
+                || positionSeconds > observedPositionSeconds
                 || (currentTrackDuration != null && positionSeconds > currentTrackDuration)) {
             return this;
         }
-        return new PlaybackSession(id, activePlaylistId, currentTrackId, playbackMode, transportState,
-                observedPositionSeconds, positionSeconds);
+        return new PlaybackSession(
+                id,
+                activePlaylistId,
+                currentTrackId,
+                playbackMode,
+                transportState,
+                observedPositionSeconds,
+                positionSeconds);
     }
 
     public PlaybackSession observeStream(String trackId, long endByte, long totalBytes, Long durationSeconds) {
-        if (trackId == null || !trackId.equals(currentTrackId) || totalBytes <= 0 || endByte < 0 || durationSeconds == null) {
+        if (trackId == null
+                || !trackId.equals(currentTrackId)
+                || totalBytes <= 0
+                || endByte < 0
+                || durationSeconds == null) {
             return this;
         }
-        long streamedPosition = Math.min(durationSeconds, (long) (((double) endByte + 1d) / totalBytes * durationSeconds));
+        long streamedPosition =
+                Math.min(durationSeconds, (long) (((double) endByte + 1d) / totalBytes * durationSeconds));
         long newObserved = Math.max(observedPositionSeconds, streamedPosition);
-        return new PlaybackSession(id, activePlaylistId, currentTrackId, playbackMode, transportState,
-                newObserved, reportedPositionSeconds);
+        return new PlaybackSession(
+                id,
+                activePlaylistId,
+                currentTrackId,
+                playbackMode,
+                transportState,
+                newObserved,
+                reportedPositionSeconds);
     }
 
     public PlaybackSession initializeClient() {
         if (transportState == TransportState.PLAYING) {
-            return new PlaybackSession(id, activePlaylistId, currentTrackId, playbackMode, TransportState.PAUSED,
-                    observedPositionSeconds, reportedPositionSeconds);
+            return new PlaybackSession(
+                    id,
+                    activePlaylistId,
+                    currentTrackId,
+                    playbackMode,
+                    TransportState.PAUSED,
+                    observedPositionSeconds,
+                    reportedPositionSeconds);
         }
         return this;
     }

@@ -1,9 +1,9 @@
 package com.gravifon.player.registry.stream;
 
-import org.junit.jupiter.api.Test;
-
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+
+import org.junit.jupiter.api.Test;
 
 class StreamRefreshSchedulerTest {
 

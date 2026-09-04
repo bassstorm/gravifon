@@ -1,5 +1,11 @@
 package com.gravifon.player.registry.scan;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.gravifon.player.config.GravifonProperties;
 import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
@@ -15,12 +21,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 class LibraryScanCoordinatorTest {
 
     @Test
@@ -28,14 +28,15 @@ class LibraryScanCoordinatorTest {
         GravifonProperties properties = new GravifonProperties();
         properties.setMusicRoot(musicRoot);
         LibraryScanner scanner = mock(LibraryScanner.class);
-        when(scanner.scan(any())).thenReturn(List.of(
-                new LibraryScanner.ScanFile("albums/classic/track.mp3", "mp3", true,
-                        Map.of(), 120L)));
+        when(scanner.scan(any()))
+                .thenReturn(
+                        List.of(new LibraryScanner.ScanFile("albums/classic/track.mp3", "mp3", true, Map.of(), 120L)));
         TrackRepository repository = mock(TrackRepository.class);
         List<Track> stored = new ArrayList<>();
         when(repository.findAll()).thenAnswer(ignored -> List.copyOf(stored));
         when(repository.findById(any(String.class))).thenAnswer(invocation -> stored.stream()
-                .filter(track -> track.id().equals(invocation.getArgument(0))).findFirst());
+                .filter(track -> track.id().equals(invocation.getArgument(0)))
+                .findFirst());
         when(repository.save(any())).thenAnswer(invocation -> {
             Track track = invocation.getArgument(0);
             stored.removeIf(existing -> existing.id().equals(track.id()));
@@ -43,7 +44,8 @@ class LibraryScanCoordinatorTest {
             return track;
         });
         ReferencedTrackIdsPort referencedPort = () -> Set.of();
-        LibraryScanCoordinator coordinator = new LibraryScanCoordinator(properties, scanner, repository, referencedPort, new ScanReconciler());
+        LibraryScanCoordinator coordinator =
+                new LibraryScanCoordinator(properties, scanner, repository, referencedPort, new ScanReconciler());
 
         coordinator.scan();
 
@@ -58,15 +60,17 @@ class LibraryScanCoordinatorTest {
         properties.setMusicRoot(musicRoot);
         LibraryScanner scanner = mock(LibraryScanner.class);
         LibraryScanner.ScanFile unreadable = new LibraryScanner.ScanFile("track.mp3", "mp3", false, Map.of(), null);
-        LibraryScanner.ScanFile readable = new LibraryScanner.ScanFile("track.mp3", "mp3", true, Map.of("TITLE", List.of("Ready")), 42L);
+        LibraryScanner.ScanFile readable =
+                new LibraryScanner.ScanFile("track.mp3", "mp3", true, Map.of("TITLE", List.of("Ready")), 42L);
         AtomicInteger scanCount = new AtomicInteger();
-        when(scanner.scan(any())).thenAnswer(invocation -> scanCount.getAndIncrement() == 0
-                ? List.of(unreadable) : List.of(readable));
+        when(scanner.scan(any()))
+                .thenAnswer(invocation -> scanCount.getAndIncrement() == 0 ? List.of(unreadable) : List.of(readable));
         TrackRepository repository = mock(TrackRepository.class);
         List<Track> stored = new ArrayList<>();
         when(repository.findAll()).thenAnswer(ignored -> List.copyOf(stored));
         when(repository.findById(any(String.class))).thenAnswer(invocation -> stored.stream()
-                .filter(track -> track.id().equals(invocation.getArgument(0))).findFirst());
+                .filter(track -> track.id().equals(invocation.getArgument(0)))
+                .findFirst());
         when(repository.save(any())).thenAnswer(invocation -> {
             Track track = invocation.getArgument(0);
             stored.removeIf(existing -> existing.id().equals(track.id()));
@@ -74,7 +78,8 @@ class LibraryScanCoordinatorTest {
             return track;
         });
         ReferencedTrackIdsPort referencedPort = () -> Set.of();
-        LibraryScanCoordinator coordinator = new LibraryScanCoordinator(properties, scanner, repository, referencedPort, new ScanReconciler());
+        LibraryScanCoordinator coordinator =
+                new LibraryScanCoordinator(properties, scanner, repository, referencedPort, new ScanReconciler());
 
         coordinator.scan();
         assertThat(stored.getFirst().state().lastError().kind()).isEqualTo("READ_ERROR");
@@ -96,7 +101,8 @@ class LibraryScanCoordinatorTest {
         when(repository.findAll()).thenReturn(List.of(referenced, unreferenced));
         when(repository.findById("referenced")).thenReturn(Optional.of(referenced));
         ReferencedTrackIdsPort referencedPort = () -> Set.of("referenced");
-        LibraryScanCoordinator coordinator = new LibraryScanCoordinator(properties, scanner, repository, referencedPort, new ScanReconciler());
+        LibraryScanCoordinator coordinator =
+                new LibraryScanCoordinator(properties, scanner, repository, referencedPort, new ScanReconciler());
 
         coordinator.scan();
 

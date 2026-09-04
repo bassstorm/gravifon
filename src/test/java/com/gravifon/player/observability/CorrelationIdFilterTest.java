@@ -1,14 +1,14 @@
 package com.gravifon.player.observability;
 
-import java.util.UUID;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+
 import jakarta.servlet.FilterChain;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 
 class CorrelationIdFilterTest {
 
@@ -20,13 +20,15 @@ class CorrelationIdFilterTest {
         request.addHeader(CorrelationIdFilter.CORRELATION_ID_HEADER, "cid-123");
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = (req, res) -> {
-            assertThat(req.getAttribute(CorrelationIdFilter.CORRELATION_ID_REQUEST_ATTRIBUTE)).isEqualTo("cid-123");
+            assertThat(req.getAttribute(CorrelationIdFilter.CORRELATION_ID_REQUEST_ATTRIBUTE))
+                    .isEqualTo("cid-123");
             assertThat(MDC.get(CorrelationIdFilter.CORRELATION_ID_MDC_KEY)).isEqualTo("cid-123");
         };
 
         filter.doFilter(request, response, chain);
 
-        assertThat(response.getHeader(CorrelationIdFilter.CORRELATION_ID_HEADER)).isEqualTo("cid-123");
+        assertThat(response.getHeader(CorrelationIdFilter.CORRELATION_ID_HEADER))
+                .isEqualTo("cid-123");
         assertThat(MDC.get(CorrelationIdFilter.CORRELATION_ID_MDC_KEY)).isNull();
     }
 
@@ -54,13 +56,15 @@ class CorrelationIdFilterTest {
         request.setParameter(CorrelationIdFilter.CORRELATION_ID_QUERY_PARAM, "cid-from-query");
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = (req, res) -> {
-            assertThat(req.getAttribute(CorrelationIdFilter.CORRELATION_ID_REQUEST_ATTRIBUTE)).isEqualTo("cid-from-query");
+            assertThat(req.getAttribute(CorrelationIdFilter.CORRELATION_ID_REQUEST_ATTRIBUTE))
+                    .isEqualTo("cid-from-query");
             assertThat(MDC.get(CorrelationIdFilter.CORRELATION_ID_MDC_KEY)).isEqualTo("cid-from-query");
         };
 
         filter.doFilter(request, response, chain);
 
-        assertThat(response.getHeader(CorrelationIdFilter.CORRELATION_ID_HEADER)).isEqualTo("cid-from-query");
+        assertThat(response.getHeader(CorrelationIdFilter.CORRELATION_ID_HEADER))
+                .isEqualTo("cid-from-query");
         assertThat(MDC.get(CorrelationIdFilter.CORRELATION_ID_MDC_KEY)).isNull();
     }
 
@@ -70,15 +74,15 @@ class CorrelationIdFilterTest {
         request.setParameter(CorrelationIdFilter.CORRELATION_ID_QUERY_PARAM_ALIAS, "cid-from-query-alias");
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = (req, res) -> {
-            assertThat(req.getAttribute(CorrelationIdFilter.CORRELATION_ID_REQUEST_ATTRIBUTE)).isEqualTo("cid-from-query-alias");
+            assertThat(req.getAttribute(CorrelationIdFilter.CORRELATION_ID_REQUEST_ATTRIBUTE))
+                    .isEqualTo("cid-from-query-alias");
             assertThat(MDC.get(CorrelationIdFilter.CORRELATION_ID_MDC_KEY)).isEqualTo("cid-from-query-alias");
         };
 
         filter.doFilter(request, response, chain);
 
-        assertThat(response.getHeader(CorrelationIdFilter.CORRELATION_ID_HEADER)).isEqualTo("cid-from-query-alias");
+        assertThat(response.getHeader(CorrelationIdFilter.CORRELATION_ID_HEADER))
+                .isEqualTo("cid-from-query-alias");
         assertThat(MDC.get(CorrelationIdFilter.CORRELATION_ID_MDC_KEY)).isNull();
     }
 }
-
-

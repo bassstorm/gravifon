@@ -13,8 +13,7 @@ public class TrackSelectorRegistry {
     private final Map<PlaybackMode, TrackSelector> selectors;
 
     public TrackSelectorRegistry(List<TrackSelector> selectors) {
-        this.selectors = selectors.stream()
-                .collect(Collectors.toUnmodifiableMap(TrackSelector::mode, s -> s));
+        this.selectors = selectors.stream().collect(Collectors.toUnmodifiableMap(TrackSelector::mode, s -> s));
     }
 
     public TrackSelector forMode(PlaybackMode mode) {

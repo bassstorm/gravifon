@@ -69,9 +69,20 @@ public class JpaTrackRepository implements TrackRepository {
             expiresAfter = epoch(streamTrack.expiresAfter());
         }
 
-        TrackEntity entity = new TrackEntity(track.id(), track.kind().name(), track.durationSeconds(), relPath,
-                format, sourceUrl, streamUrl, expiresAfter, track.state().failing(),
-                errorKind(track), errorMessage(track), errorAt(track), errorReporter(track));
+        TrackEntity entity = new TrackEntity(
+                track.id(),
+                track.kind().name(),
+                track.durationSeconds(),
+                relPath,
+                format,
+                sourceUrl,
+                streamUrl,
+                expiresAfter,
+                track.state().failing(),
+                errorKind(track),
+                errorMessage(track),
+                errorAt(track),
+                errorReporter(track));
         List<TrackMetadataEntity> metadata = new ArrayList<>();
         track.metadata().forEach((key, values) -> {
             for (int order = 0; order < values.size(); order++) {
@@ -90,24 +101,64 @@ public class JpaTrackRepository implements TrackRepository {
 
     private Track toDomain(TrackEntity entity) {
         var metadata = new LinkedHashMap<String, List<String>>();
-        entity.metadata().stream().sorted(java.util.Comparator.comparing(TrackMetadataEntity::key)
-                .thenComparingInt(TrackMetadataEntity::order)).forEach(value ->
-                metadata.computeIfAbsent(value.key(), ignored -> new ArrayList<>()).add(value.value()));
-        TrackError error = entity.errorKind() == null ? null : new TrackError(entity.errorKind(), entity.errorMessage(),
-                instant(entity.errorAt()), entity.errorReporter());
+        entity.metadata().stream()
+                .sorted(java.util.Comparator.comparing(TrackMetadataEntity::key)
+                        .thenComparingInt(TrackMetadataEntity::order))
+                .forEach(value -> metadata.computeIfAbsent(value.key(), ignored -> new ArrayList<>())
+                        .add(value.value()));
+        TrackError error = entity.errorKind() == null
+                ? null
+                : new TrackError(
+                        entity.errorKind(), entity.errorMessage(), instant(entity.errorAt()), entity.errorReporter());
         TrackKind kind = TrackKind.valueOf(entity.kind());
         return switch (kind) {
-            case FILE -> new FileTrack(entity.id(), metadata, entity.durationSeconds(),
-                    new TrackState(entity.failing(), error), entity.relativePath(), entity.format());
-            case STREAM -> new StreamTrack(entity.id(), metadata, entity.durationSeconds(),
-                    new TrackState(entity.failing(), error), entity.sourceUrl(), entity.streamUrl(), instant(entity.expiresAfter()));
+            case FILE -> new FileTrack(
+                    entity.id(),
+                    metadata,
+                    entity.durationSeconds(),
+                    new TrackState(entity.failing(), error),
+                    entity.relativePath(),
+                    entity.format());
+            case STREAM -> new StreamTrack(
+                    entity.id(),
+                    metadata,
+                    entity.durationSeconds(),
+                    new TrackState(entity.failing(), error),
+                    entity.sourceUrl(),
+                    entity.streamUrl(),
+                    instant(entity.expiresAfter()));
         };
     }
 
-    private Long epoch(Instant value) { return value == null ? null : value.getEpochSecond(); }
-    private Instant instant(Long value) { return value == null ? null : Instant.ofEpochSecond(value); }
-    private String errorKind(Track track) { return track.state().lastError() == null ? null : track.state().lastError().kind(); }
-    private String errorMessage(Track track) { return track.state().lastError() == null ? null : track.state().lastError().message(); }
-    private Long errorAt(Track track) { return track.state().lastError() == null ? null : epoch(track.state().lastError().at()); }
-    private String errorReporter(Track track) { return track.state().lastError() == null ? null : track.state().lastError().reportedBy(); }
+    private Long epoch(Instant value) {
+        return value == null ? null : value.getEpochSecond();
+    }
+
+    private Instant instant(Long value) {
+        return value == null ? null : Instant.ofEpochSecond(value);
+    }
+
+    private String errorKind(Track track) {
+        return track.state().lastError() == null
+                ? null
+                : track.state().lastError().kind();
+    }
+
+    private String errorMessage(Track track) {
+        return track.state().lastError() == null
+                ? null
+                : track.state().lastError().message();
+    }
+
+    private Long errorAt(Track track) {
+        return track.state().lastError() == null
+                ? null
+                : epoch(track.state().lastError().at());
+    }
+
+    private String errorReporter(Track track) {
+        return track.state().lastError() == null
+                ? null
+                : track.state().lastError().reportedBy();
+    }
 }

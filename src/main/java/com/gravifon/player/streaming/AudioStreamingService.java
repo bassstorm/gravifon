@@ -9,12 +9,12 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Locale;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -22,16 +22,15 @@ public class AudioStreamingService {
 
     private final PlaybackService playbackService;
 
-    public void streamFile(String trackId, Path trackPath, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void streamFile(String trackId, Path trackPath, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         long fileLength;
         try (FileChannel probe = FileChannel.open(trackPath, StandardOpenOption.READ)) {
             fileLength = probe.size();
         }
 
         String rangeHeader = request.getHeader(HttpHeaders.RANGE);
-        ByteRange range = (rangeHeader == null || rangeHeader.isBlank())
-                ? null
-                : parseRange(rangeHeader, fileLength);
+        ByteRange range = (rangeHeader == null || rangeHeader.isBlank()) ? null : parseRange(rangeHeader, fileLength);
 
         response.setHeader(HttpHeaders.ACCEPT_RANGES, "bytes");
         response.setContentType(resolveContentType(trackPath).toString());
@@ -47,8 +46,8 @@ public class AudioStreamingService {
 
         long regionLength = range.end() - range.start() + 1;
         response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
-        response.setHeader(HttpHeaders.CONTENT_RANGE,
-                "bytes %d-%d/%d".formatted(range.start(), range.end(), fileLength));
+        response.setHeader(
+                HttpHeaders.CONTENT_RANGE, "bytes %d-%d/%d".formatted(range.start(), range.end(), fileLength));
         response.setContentLengthLong(regionLength);
 
         try (FileChannel channel = FileChannel.open(trackPath, StandardOpenOption.READ)) {
@@ -100,8 +99,7 @@ public class AudioStreamingService {
     private ResponseStatusException rangeNotSatisfiable(long fileLength) {
         return new ResponseStatusException(
                 HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE,
-                "Range not satisfiable. Expected bytes within resource length %d".formatted(fileLength)
-        );
+                "Range not satisfiable. Expected bytes within resource length %d".formatted(fileLength));
     }
 
     private MediaType resolveContentType(Path path) {
@@ -118,6 +116,5 @@ public class AudioStreamingService {
         return MediaType.APPLICATION_OCTET_STREAM;
     }
 
-    public record ByteRange(long start, long end) {
-    }
+    public record ByteRange(long start, long end) {}
 }

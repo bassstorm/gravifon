@@ -21,8 +21,8 @@ class JaudiotaggerMetadataExtractorTest {
 
     @Test
     void malformedAudioRemainsAvailableWithUnknownDuration() {
-        MetadataExtractor.ExtractedMetadata metadata = new JaudiotaggerMetadataExtractor()
-                .extract(Path.of("does-not-exist.mp3"));
+        MetadataExtractor.ExtractedMetadata metadata =
+                new JaudiotaggerMetadataExtractor().extract(Path.of("does-not-exist.mp3"));
 
         assertThat(metadata.values()).isEmpty();
         assertThat(metadata.durationSeconds()).isNull();
@@ -40,8 +40,8 @@ class JaudiotaggerMetadataExtractorTest {
         try (MockedStatic<AudioFileIO> audioFiles = org.mockito.Mockito.mockStatic(AudioFileIO.class)) {
             audioFiles.when(() -> AudioFileIO.read(any())).thenReturn(audioFile);
 
-            MetadataExtractor.ExtractedMetadata metadata = new JaudiotaggerMetadataExtractor()
-                    .extract(Path.of("untagged.mp3"));
+            MetadataExtractor.ExtractedMetadata metadata =
+                    new JaudiotaggerMetadataExtractor().extract(Path.of("untagged.mp3"));
 
             assertThat(metadata.readable()).isTrue();
             assertThat(metadata.values()).isEmpty();
@@ -60,8 +60,9 @@ class JaudiotaggerMetadataExtractorTest {
         when(audioFile.getAudioHeader()).thenReturn(header);
         when(header.getTrackLength()).thenReturn(90);
         when(tag.getFields(FieldKey.GENRE)).thenReturn(List.of(first, second));
-        when(tag.getFields(any(FieldKey.class))).thenAnswer(invocation ->
-                invocation.getArgument(0) == FieldKey.GENRE ? List.of(first, second) : Collections.emptyList());
+        when(tag.getFields(any(FieldKey.class)))
+                .thenAnswer(invocation ->
+                        invocation.getArgument(0) == FieldKey.GENRE ? List.of(first, second) : Collections.emptyList());
         when(tag.getFields()).thenReturn(Collections.emptyIterator());
         when(first.toString()).thenReturn("ambient");
         when(second.toString()).thenReturn("downtempo");
@@ -69,8 +70,8 @@ class JaudiotaggerMetadataExtractorTest {
         try (MockedStatic<AudioFileIO> audioFiles = org.mockito.Mockito.mockStatic(AudioFileIO.class)) {
             audioFiles.when(() -> AudioFileIO.read(any())).thenReturn(audioFile);
 
-            MetadataExtractor.ExtractedMetadata metadata = new JaudiotaggerMetadataExtractor()
-                    .extract(Path.of("tagged.mp3"));
+            MetadataExtractor.ExtractedMetadata metadata =
+                    new JaudiotaggerMetadataExtractor().extract(Path.of("tagged.mp3"));
 
             assertThat(metadata.readable()).isTrue();
             assertThat(metadata.values()).containsEntry("GENRE", List.of("ambient", "downtempo"));

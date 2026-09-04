@@ -18,18 +18,34 @@ public record TrackResponse(
         Long durationSeconds,
         TrackState state,
         String sourceUrl,
-        Instant expiresAfter
-) {
+        Instant expiresAfter) {
     public static TrackResponse from(Track track) {
         return switch (track) {
             case FileTrack file -> {
-                String filename = file.relPath() == null ? null : java.nio.file.Path.of(file.relPath()).getFileName().toString();
-                yield new TrackResponse(file.id(), filename, file.kind(), file.metadata(), file.format(),
-                        file.durationSeconds(), file.state(), null, null);
+                String filename = file.relPath() == null
+                        ? null
+                        : java.nio.file.Path.of(file.relPath()).getFileName().toString();
+                yield new TrackResponse(
+                        file.id(),
+                        filename,
+                        file.kind(),
+                        file.metadata(),
+                        file.format(),
+                        file.durationSeconds(),
+                        file.state(),
+                        null,
+                        null);
             }
-            case StreamTrack stream -> new TrackResponse(stream.id(), null, stream.kind(), stream.metadata(),
-                    null, stream.durationSeconds(), stream.state(), stream.sourceUrl(), stream.expiresAfter());
+            case StreamTrack stream -> new TrackResponse(
+                    stream.id(),
+                    null,
+                    stream.kind(),
+                    stream.metadata(),
+                    null,
+                    stream.durationSeconds(),
+                    stream.state(),
+                    stream.sourceUrl(),
+                    stream.expiresAfter());
         };
     }
 }
-

@@ -1,12 +1,12 @@
 package com.gravifon.player.streaming;
 
-import com.gravifon.player.playback.service.PlaybackService;
-import org.junit.jupiter.api.Test;
-import org.springframework.web.server.ResponseStatusException;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+
+import com.gravifon.player.playback.service.PlaybackService;
+import org.junit.jupiter.api.Test;
+import org.springframework.web.server.ResponseStatusException;
 
 class AudioStreamingServiceTest {
 
@@ -36,11 +36,8 @@ class AudioStreamingServiceTest {
 
     @Test
     void parseRange_rejectsInvalidRanges() {
-        assertThatThrownBy(() -> service.parseRange("invalid", 100))
-                .isInstanceOf(ResponseStatusException.class);
-        assertThatThrownBy(() -> service.parseRange("bytes=100-200", 50))
-                .isInstanceOf(ResponseStatusException.class);
-        assertThatThrownBy(() -> service.parseRange("bytes=40-20", 100))
-                .isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> service.parseRange("invalid", 100)).isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> service.parseRange("bytes=100-200", 50)).isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> service.parseRange("bytes=40-20", 100)).isInstanceOf(ResponseStatusException.class);
     }
 }

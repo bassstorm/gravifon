@@ -1,10 +1,17 @@
 package com.gravifon.player.api.controller;
 
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.gravifon.player.api.error.ApiExceptionHandler;
+import com.gravifon.player.observability.CorrelationIdFilter;
+import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.service.TrackRegistry;
-import com.gravifon.player.observability.CorrelationIdFilter;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -14,12 +21,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = TrackController.class)
 @Import({ApiExceptionHandler.class, CorrelationIdFilter.class})
@@ -33,8 +34,7 @@ class TrackControllerWebMvcTest {
 
     @Test
     void listTracks_returnsTrackDtosAndPreservesCorrelationHeader() throws Exception {
-        Track track = new com.gravifon.player.registry.model.FileTrack("track-1", java.util.Map.of(), 123L, TrackState.healthy(),
-            "a.mp3", "mp3");
+        Track track = new FileTrack("track-1", java.util.Map.of(), 123L, TrackState.healthy(), "a.mp3", "mp3");
         when(trackRegistry.listTracks()).thenReturn(List.of(track));
 
         mockMvc.perform(get("/api/tracks")
@@ -78,4 +78,3 @@ class TrackControllerWebMvcTest {
                 .andExpect(jsonPath("$.correlationId").value("cid-500"));
     }
 }
-

@@ -1,5 +1,13 @@
 package com.gravifon.player.registry.stream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.gravifon.player.config.GravifonProperties;
 import com.gravifon.player.playback.service.PlaybackService;
 import com.gravifon.player.playlist.service.PlaylistService;
@@ -18,14 +26,6 @@ import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 class StreamRefreshServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
@@ -35,8 +35,13 @@ class StreamRefreshServiceTest {
     private final TrackRepository trackRepository = mock(TrackRepository.class);
     private final PlaylistService playlistService = mock(PlaylistService.class);
     private final PlaybackService playbackService = mock(PlaybackService.class);
-    private final StreamRefreshService service = new StreamRefreshService(resolverRegistry, trackRegistry,
-            trackRepository, playlistService, playbackService, new GravifonProperties());
+    private final StreamRefreshService service = new StreamRefreshService(
+            resolverRegistry,
+            trackRegistry,
+            trackRepository,
+            playlistService,
+            playbackService,
+            new GravifonProperties());
 
     @Test
     void freshUrlBypassesResolver() throws IOException {
@@ -52,9 +57,11 @@ class StreamRefreshServiceTest {
         StreamResolver resolver = mock(StreamResolver.class);
         StreamTrack refreshed = track("t1", Instant.parse("2026-01-01T00:01:00Z"));
         when(resolverRegistry.resolverFor(track)).thenReturn(resolver);
-        when(resolver.refreshStream(track)).thenReturn(new StreamResolver.ResolvedStream("https://fresh", refreshed.expiresAfter()));
+        when(resolver.refreshStream(track))
+                .thenReturn(new StreamResolver.ResolvedStream("https://fresh", refreshed.expiresAfter()));
         when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(track));
-        when(trackRegistry.updateStream("t1", "https://fresh", refreshed.expiresAfter())).thenReturn(refreshed);
+        when(trackRegistry.updateStream("t1", "https://fresh", refreshed.expiresAfter()))
+                .thenReturn(refreshed);
 
         assertEquals(refreshed, service.ensureFresh(track, NOW));
         verify(trackRegistry).updateStream("t1", "https://fresh", refreshed.expiresAfter());
@@ -80,8 +87,8 @@ class StreamRefreshServiceTest {
         GravifonProperties properties = new GravifonProperties();
         properties.getStreams().setRefreshTimeout(java.time.Duration.ofMillis(10));
         properties.getStreams().setRefreshMaxAttempts(1);
-        StreamRefreshService shortTimeoutService = new StreamRefreshService(resolverRegistry, trackRegistry,
-                trackRepository, playlistService, playbackService, properties);
+        StreamRefreshService shortTimeoutService = new StreamRefreshService(
+                resolverRegistry, trackRegistry, trackRepository, playlistService, playbackService, properties);
         when(resolverRegistry.resolverFor(track)).thenReturn(resolver);
         when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(track));
         when(resolver.refreshStream(track)).thenAnswer(invocation -> {
@@ -118,12 +125,14 @@ class StreamRefreshServiceTest {
     }
 
     private StreamTrack refresh(StreamTrack track) {
-        try { return service.ensureFresh(track); }
-        catch (IOException exception) { throw new RuntimeException(exception); }
+        try {
+            return service.ensureFresh(track);
+        } catch (IOException exception) {
+            throw new RuntimeException(exception);
+        }
     }
 
     private StreamTrack track(String id, Instant expiresAfter) {
-        return new StreamTrack(id, Map.of(), null, TrackState.healthy(),
-                "https://source", "https://old", expiresAfter);
+        return new StreamTrack(id, Map.of(), null, TrackState.healthy(), "https://source", "https://old", expiresAfter);
     }
 }

@@ -1,12 +1,13 @@
 package com.gravifon.player.registry.metadata;
 
-import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.tag.FieldKey;
@@ -14,7 +15,6 @@ import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.TagField;
 import org.jmolecules.architecture.onion.simplified.InfrastructureRing;
 import org.springframework.stereotype.Component;
-import lombok.extern.slf4j.Slf4j;
 
 @InfrastructureRing
 @Slf4j
@@ -46,15 +46,18 @@ public class JaudiotaggerMetadataExtractor implements MetadataExtractor {
                     TagField field = fields.next();
                     String key = field.getId().toUpperCase(Locale.ROOT);
                     if (!values.containsKey(key)) {
-                        values.computeIfAbsent(key, ignored -> new ArrayList<>()).add(rawValue(field));
+                        values.computeIfAbsent(key, ignored -> new ArrayList<>())
+                                .add(rawValue(field));
                     }
                 }
             }
             int duration = audioFile.getAudioHeader().getTrackLength();
             return new ExtractedMetadata(values, duration > 0 ? (long) duration : null, true);
         } catch (Exception exception) {
-            log.warn("Unable to extract metadata for {}. Keeping track with unknown metadata. Cause: {}",
-                    path, exception.toString());
+            log.warn(
+                    "Unable to extract metadata for {}. Keeping track with unknown metadata. Cause: {}",
+                    path,
+                    exception.toString());
             return new ExtractedMetadata(Map.of(), null, false);
         }
     }

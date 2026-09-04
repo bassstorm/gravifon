@@ -1,6 +1,15 @@
 package com.gravifon.player.api.controller;
 
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.gravifon.player.api.error.ApiExceptionHandler;
+import com.gravifon.player.observability.CorrelationIdFilter;
 import com.gravifon.player.playback.model.PlaybackMode;
 import com.gravifon.player.playback.model.PlaybackState;
 import com.gravifon.player.playback.model.TransportState;
@@ -8,7 +17,6 @@ import com.gravifon.player.playback.service.PlaybackService;
 import com.gravifon.player.playlist.model.Playlist;
 import com.gravifon.player.playlist.service.PlaylistService;
 import com.gravifon.player.registry.service.StreamTrackRegistrar;
-import com.gravifon.player.observability.CorrelationIdFilter;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,14 +26,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.any;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 @WebMvcTest(controllers = PlaylistController.class)
 @Import({ApiExceptionHandler.class, CorrelationIdFilter.class})
 class PlaylistControllerWebMvcTest {
@@ -34,13 +34,13 @@ class PlaylistControllerWebMvcTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-        private PlaylistService playlistService;
+    private PlaylistService playlistService;
 
-        @MockitoBean
-        private PlaybackService playbackService;
+    @MockitoBean
+    private PlaybackService playbackService;
 
-        @MockitoBean
-        private StreamTrackRegistrar streamTrackRegistrar;
+    @MockitoBean
+    private StreamTrackRegistrar streamTrackRegistrar;
 
     @Test
     void listPlaylists_returnsDtosWithActiveFlag() throws Exception {
@@ -107,8 +107,6 @@ class PlaylistControllerWebMvcTest {
                         .content("{\"name\":\"Renamed\"}"))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(delete("/api/playlists/p1"))
-                .andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/playlists/p1")).andExpect(status().isNoContent());
     }
 }
-

@@ -146,22 +146,26 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.6.0</version>
-                <executions>
-                    <execution>
-                        <id>checkstyle</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <configuration>
-                            <configLocation>config/checkstyle.xml</configLocation>
-                            <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>3.10.1</version>
+                <configuration>
+                    <java>
+                        <palantirJavaFormat />
+                        <formatAnnotations />
+                        <expandWildcardImports />
+                        <forbidWildcardImports />
+                        <shortenFullyQualifiedTypes />
+                        <removeUnusedImports />
+                        <importOrder />
+                        <trimTrailingWhitespace />
+                        <endWithNewline />
+                        <indent>
+                            <spaces>true</spaces>
+                            <spacesPerTab>4</spacesPerTab>
+                        </indent>
+                    </java>
+                </configuration>
             </plugin>
         </plugins>
     </build>

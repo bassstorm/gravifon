@@ -47,8 +47,10 @@ public class LibraryScanCoordinator {
                 case CREATE, REFRESH -> trackRepository.save(trackFrom(decision));
                 case TOMBSTONE -> trackRepository.findById(decision.trackId()).ifPresent(track -> {
                     String missingPath = track instanceof FileTrack fileTrack ? fileTrack.relPath() : track.id();
-                    trackRepository.save(track.withState(new TrackState(true, new TrackError(
-                            "SOURCE_MISSING", "File is missing: " + missingPath, Instant.now(), "SCAN"))));
+                    trackRepository.save(track.withState(new TrackState(
+                            true,
+                            new TrackError(
+                                    "SOURCE_MISSING", "File is missing: " + missingPath, Instant.now(), "SCAN"))));
                 });
                 case REMOVE -> trackRepository.deleteById(decision.trackId());
             }
@@ -57,11 +59,15 @@ public class LibraryScanCoordinator {
 
     private Track trackFrom(ScanReconciler.Decision decision) {
         var file = decision.file();
-        TrackState state = file.readable() ? TrackState.healthy() : new TrackState(true, new TrackError(
-                "READ_ERROR", "Unable to read file: " + file.relativePath(), Instant.now(), "SCAN"));
+        TrackState state = file.readable()
+                ? TrackState.healthy()
+                : new TrackState(
+                        true,
+                        new TrackError(
+                                "READ_ERROR", "Unable to read file: " + file.relativePath(), Instant.now(), "SCAN"));
         String id = decision.type() == ScanReconciler.DecisionType.CREATE
-                ? TrackIdentity.forFile(Path.of(file.relativePath())) : decision.trackId();
-        return new FileTrack(id, file.metadata(), file.durationSeconds(), state,
-                file.relativePath(), file.format());
+                ? TrackIdentity.forFile(Path.of(file.relativePath()))
+                : decision.trackId();
+        return new FileTrack(id, file.metadata(), file.durationSeconds(), state, file.relativePath(), file.format());
     }
 }

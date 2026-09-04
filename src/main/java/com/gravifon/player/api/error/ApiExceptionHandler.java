@@ -3,8 +3,8 @@ package com.gravifon.player.api.error;
 import com.gravifon.player.api.model.ApiErrorResponse;
 import com.gravifon.player.error.ResourceNotFoundException;
 import com.gravifon.player.observability.CorrelationIdFilter;
-import java.io.IOException;
 import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.time.Instant;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,12 +22,14 @@ public class ApiExceptionHandler {
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ApiErrorResponse> handleMissingRoute(NoResourceFoundException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiErrorResponse> handleMissingRoute(
+            NoResourceFoundException ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.NOT_FOUND, "Resource not found", request);
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<ApiErrorResponse> handleResponseStatus(ResponseStatusException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiErrorResponse> handleResponseStatus(
+            ResponseStatusException ex, HttpServletRequest request) {
         HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
         String message = ex.getReason() != null ? ex.getReason() : status.getReasonPhrase();
         return buildResponse(status, message, request);
@@ -48,7 +50,8 @@ public class ApiExceptionHandler {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error", request);
     }
 
-    private ResponseEntity<ApiErrorResponse> buildResponse(HttpStatus status, String message, HttpServletRequest request) {
+    private ResponseEntity<ApiErrorResponse> buildResponse(
+            HttpStatus status, String message, HttpServletRequest request) {
         String correlationId = (String) request.getAttribute(CorrelationIdFilter.CORRELATION_ID_REQUEST_ATTRIBUTE);
         ApiErrorResponse body = new ApiErrorResponse(
                 Instant.now(),
@@ -56,10 +59,7 @@ public class ApiExceptionHandler {
                 status.getReasonPhrase(),
                 message,
                 request.getRequestURI(),
-                correlationId
-        );
+                correlationId);
         return ResponseEntity.status(status).body(body);
     }
 }
-
-

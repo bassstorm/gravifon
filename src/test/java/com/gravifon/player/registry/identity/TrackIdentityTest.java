@@ -12,7 +12,7 @@ class TrackIdentityTest {
     @Test
     void fileIdentityUsesRelativePathAndStablePrefix() {
         assertThat(TrackIdentity.forFile(Path.of("albums/classic/track.mp3")))
-            .isEqualTo("56efce21b99be1648bfce49a6d9cfae05f9049e4");
+                .isEqualTo("56efce21b99be1648bfce49a6d9cfae05f9049e4");
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.gravifon.player.registry.stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.gravifon.player.registry.model.Track;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,7 @@ class StreamResolverRegistryTest {
         }
 
         @Override
-        public ResolvedStream refreshStream(com.gravifon.player.registry.model.Track track) {
+        public ResolvedStream refreshStream(Track track) {
             return new ResolvedStream("https://cdn.example/song", Instant.now().plusSeconds(60));
         }
     }

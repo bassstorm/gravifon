@@ -3,9 +3,9 @@ package com.gravifon.player.registry.identity;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Locale;
 import java.util.stream.Collectors;
-import java.util.Comparator;
 
 public class DefaultSourceUrlNormalizer implements SourceUrlNormalizer {
 
@@ -20,16 +20,23 @@ public class DefaultSourceUrlNormalizer implements SourceUrlNormalizer {
                 throw new IllegalArgumentException("Source URL must include a scheme and host");
             }
             String query = uri.getRawQuery();
-            String normalizedQuery = query == null ? null : Arrays.stream(query.split("&"))
-                    .filter(parameter -> !parameter.isBlank())
-                    .filter(parameter -> !isVolatile(parameter.substring(0, parameter.indexOf('=') >= 0
-                            ? parameter.indexOf('=') : parameter.length())))
-                        .sorted(Comparator.naturalOrder())
-                    .collect(Collectors.joining("&"));
-            return new URI(uri.getScheme().toLowerCase(Locale.ROOT), uri.getUserInfo(),
-                    uri.getHost().toLowerCase(Locale.ROOT), uri.getPort(), uri.getPath(),
-                    normalizedQuery == null || normalizedQuery.isBlank() ? null : normalizedQuery,
-                    uri.getFragment()).toString();
+            String normalizedQuery = query == null
+                    ? null
+                    : Arrays.stream(query.split("&"))
+                            .filter(parameter -> !parameter.isBlank())
+                            .filter(parameter -> !isVolatile(parameter.substring(
+                                    0, parameter.indexOf('=') >= 0 ? parameter.indexOf('=') : parameter.length())))
+                            .sorted(Comparator.naturalOrder())
+                            .collect(Collectors.joining("&"));
+            return new URI(
+                            uri.getScheme().toLowerCase(Locale.ROOT),
+                            uri.getUserInfo(),
+                            uri.getHost().toLowerCase(Locale.ROOT),
+                            uri.getPort(),
+                            uri.getPath(),
+                            normalizedQuery == null || normalizedQuery.isBlank() ? null : normalizedQuery,
+                            uri.getFragment())
+                    .toString();
         } catch (URISyntaxException exception) {
             throw new IllegalArgumentException("Invalid source URL", exception);
         }
@@ -37,8 +44,6 @@ public class DefaultSourceUrlNormalizer implements SourceUrlNormalizer {
 
     private boolean isVolatile(String key) {
         String normalizedKey = key.toLowerCase(Locale.ROOT);
-        return normalizedKey.startsWith("utm_")
-                || normalizedKey.equals("fbclid")
-                || normalizedKey.equals("gclid");
+        return normalizedKey.startsWith("utm_") || normalizedKey.equals("fbclid") || normalizedKey.equals("gclid");
     }
 }

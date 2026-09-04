@@ -6,12 +6,8 @@ import java.util.List;
 import java.util.stream.Stream;
 import org.jmolecules.ddd.types.AggregateRoot;
 
-public record Playlist(
-        String id,
-        String name,
-        List<String> trackIds,
-        PlaybackMode playbackMode
-) implements AggregateRoot<Playlist, PlaylistId> {
+public record Playlist(String id, String name, List<String> trackIds, PlaybackMode playbackMode)
+        implements AggregateRoot<Playlist, PlaylistId> {
 
     public Playlist(String id, String name, List<String> trackIds) {
         this(id, name, trackIds, PlaybackMode.SEQUENTIAL);
@@ -44,7 +40,8 @@ public record Playlist(
     }
 
     public Playlist addEntries(List<String> additions) {
-        List<String> updated = Stream.concat(trackIds.stream(), additions.stream()).toList();
+        List<String> updated =
+                Stream.concat(trackIds.stream(), additions.stream()).toList();
         return new Playlist(id, name, updated, playbackMode);
     }
 
@@ -56,4 +53,3 @@ public record Playlist(
         return new Playlist(id, name, updated, playbackMode);
     }
 }
-

@@ -1,5 +1,14 @@
 package com.gravifon.player;
 
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.gravifon.player.observability.CorrelationIdFilter;
 import com.gravifon.player.playlist.service.PlaylistService;
 import com.gravifon.player.registry.service.TrackRegistry;
@@ -14,24 +23,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-@SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.MOCK,
-        properties = "gravifon.startup-scan-enabled=false"
-)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK, properties = "gravifon.startup-scan-enabled=false")
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class GravifonIntegrationTest {
@@ -56,22 +53,23 @@ class GravifonIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
-        private TrackRegistry trackRegistry;
+    private TrackRegistry trackRegistry;
 
     @Autowired
-        private PlaylistService playlistService;
+    private PlaylistService playlistService;
 
-        private String playlistId;
+    private String playlistId;
 
     @BeforeEach
     void refreshCatalogAndPlaylists() {
-                trackRegistry.refresh();
-                if (playlistService.listPlaylists().isEmpty()) {
-                        playlistId = playlistService.materializeCatalog("Integration Playlist").id();
-                } else {
-                        playlistId = playlistService.listPlaylists().getFirst().id();
-                }
-                playlistService.select(playlistId);
+        trackRegistry.refresh();
+        if (playlistService.listPlaylists().isEmpty()) {
+            playlistId =
+                    playlistService.materializeCatalog("Integration Playlist").id();
+        } else {
+            playlistId = playlistService.listPlaylists().getFirst().id();
+        }
+        playlistService.select(playlistId);
     }
 
     // ── Track endpoints ──────────────────────────────────────────────────
@@ -98,7 +96,7 @@ class GravifonIntegrationTest {
     // ── Playlist endpoints ───────────────────────────────────────────────
 
     @Test
-        void playlists_materializedRegistryPlaylistExistsWithTwoTracks() throws Exception {
+    void playlists_materializedRegistryPlaylistExistsWithTwoTracks() throws Exception {
         mockMvc.perform(get("/api/playlists").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))))
@@ -108,21 +106,21 @@ class GravifonIntegrationTest {
     }
 
     @Test
-        void playlists_selectAndReturnPlaybackSnapshot() throws Exception {
+    void playlists_selectAndReturnPlaybackSnapshot() throws Exception {
         mockMvc.perform(post("/api/playlists/" + playlistId + "/select").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.activePlaylistId").value(playlistId))
-                                .andExpect(jsonPath("$.currentTrackId", notNullValue()));
+                .andExpect(jsonPath("$.activePlaylistId").value(playlistId))
+                .andExpect(jsonPath("$.currentTrackId", notNullValue()));
     }
 
     @Test
-        void playlists_createEndpointPersistsPlaylist() throws Exception {
+    void playlists_createEndpointPersistsPlaylist() throws Exception {
         mockMvc.perform(post("/api/playlists")
-                                                .contentType(MediaType.APPLICATION_JSON)
-                                                .content("{\"name\":\"Created Playlist\",\"catalog\":true}"))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.name").value("Created Playlist"))
-                                .andExpect(jsonPath("$.trackIds", hasSize(2)));
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Created Playlist\",\"catalog\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Created Playlist"))
+                .andExpect(jsonPath("$.trackIds", hasSize(2)));
     }
 
     // ── Playback control flow ────────────────────────────────────────────
@@ -186,5 +184,3 @@ class GravifonIntegrationTest {
                 .andExpect(header().string("Content-Range", org.hamcrest.Matchers.startsWith("bytes 0-3/")));
     }
 }
-
-
