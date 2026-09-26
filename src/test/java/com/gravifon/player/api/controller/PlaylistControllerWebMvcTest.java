@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gravifon.player.api.error.ApiExceptionHandler;
 import com.gravifon.player.observability.CorrelationIdFilter;
 import com.gravifon.player.playback.model.PlaybackMode;
@@ -18,6 +19,7 @@ import com.gravifon.player.playlist.model.Playlist;
 import com.gravifon.player.playlist.service.PlaylistService;
 import com.gravifon.player.registry.service.StreamTrackRegistrar;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -31,6 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class PlaylistControllerWebMvcTest {
     @Autowired
     private MockMvc mockMvc;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     @MockitoBean
     private PlaylistService playlistService;
     @MockitoBean
@@ -99,7 +102,7 @@ class PlaylistControllerWebMvcTest {
         mockMvc
             .perform(post("/api/playlists")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\\\"name\\\":" + "\\\"Created\\\"}")
+                .content(objectMapper.writeValueAsString(Map.of("name", "Created")))
             )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value("p1"));
