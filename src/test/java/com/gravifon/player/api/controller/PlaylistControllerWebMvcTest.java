@@ -111,7 +111,7 @@ class PlaylistControllerWebMvcTest {
             .perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                 .patch("/api/playlists/p1")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"name\":\"Renamed\"}")
+                .content(objectMapper.writeValueAsString(Map.of("name", "Renamed")))
             )
             .andExpect(status().isOk());
 
