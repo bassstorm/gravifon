@@ -2,6 +2,7 @@ package com.gravifon.player.playback.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.gravifon.player.playback.model.PlaybackMode;
@@ -12,41 +13,40 @@ import com.gravifon.player.playlist.model.Playlist;
 import com.gravifon.player.playlist.service.PlaylistService;
 import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
-import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.repository.TrackRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.STRICT_STUBS)
 class PlaybackServiceTest {
+    @Mock
     private PlaylistService playlistService;
+    @Mock
     private TrackRepository trackRepository;
+    @Mock
     private PlaybackStateRepository stateRepository;
     private TrackSelectorRegistry selectorRegistry;
     private PlaybackService playbackService;
 
     @BeforeEach
     void setUp() {
-        playlistService = Mockito.mock(PlaylistService.class);
-        trackRepository = Mockito.mock(TrackRepository.class);
-        stateRepository = Mockito.mock(PlaybackStateRepository.class);
-        when(stateRepository.find(Mockito.any())).thenReturn(Optional.empty());
         selectorRegistry = new TrackSelectorRegistry(List.of(new SequentialTrackSelector(), new RandomTrackSelector()));
-
-        Playlist active = new Playlist("all-tracks", "All Tracks", List.of("t1", "t2"));
-        when(playlistService.getActive()).thenReturn(active);
-
-        when(trackRepository.findById("t1")).thenReturn(Optional.of(track("t1", 120L)));
-        when(trackRepository.findById("t2")).thenReturn(Optional.of(track("t2", 60L)));
-
         playbackService = new PlaybackService(playlistService, trackRepository, stateRepository, selectorRegistry);
     }
 
     @Test
     void transportTransitions_keepServerPlaybackContextConsistent() {
+        stubDefaultActivePlaylist();
+
         var playing = playbackService.setTransportState(TransportState.PLAYING);
         assertThat(playing.currentTrackId()).isEqualTo("t1");
         assertThat(playing.transportState()).isEqualTo(TransportState.PLAYING);
@@ -62,6 +62,9 @@ class PlaybackServiceTest {
 
     @Test
     void selectTrack_requiresTrackFromActivePlaylist_andResetsPosition() {
+        stubDefaultActivePlaylist();
+        when(trackRepository.findById("t1")).thenReturn(Optional.of(track("t1", 120L)));
+
         playbackService.setTransportState(TransportState.PLAYING);
         playbackService.observeStream("t1", 59, 120);
 
@@ -77,8 +80,6 @@ class PlaybackServiceTest {
     @Test
     void selectPlaylist_eagerlyRepicksTrackFromNewActivePlaylist() {
         Playlist second = new Playlist("favorites", "Favorites", List.of("t3"));
-        when(trackRepository.findById("t3")).thenReturn(Optional.of(track("t3", 90L)));
-        when(playlistService.getActive()).thenReturn(second, second);
         when(playlistService.select("favorites")).thenReturn(second);
 
         var selected = playbackService.selectPlaylist("favorites");
@@ -89,6 +90,7 @@ class PlaybackServiceTest {
 
     @Test
     void sequentialMode_advancesAndWrapsByOrder() {
+        stubDefaultActivePlaylist();
         playbackService.setTransportState(TransportState.PLAYING);
 
         var second = playbackService.nextTrack();
@@ -100,6 +102,7 @@ class PlaybackServiceTest {
 
     @Test
     void randomMode_selectsValidTrackFromActivePlaylist() {
+        stubDefaultActivePlaylist();
         playbackService.setMode(PlaybackMode.RANDOM);
 
         var first = playbackService.nextTrack();
@@ -111,6 +114,9 @@ class PlaybackServiceTest {
 
     @Test
     void positionReport_acceptsCurrentTrackOnlyWithinObservedPlayback() {
+        stubDefaultActivePlaylist();
+        when(trackRepository.findById("t1")).thenReturn(Optional.of(track("t1", 120L)));
+
         playbackService.setTransportState(TransportState.PLAYING);
         playbackService.observeStream("t1", 59, 120);
 
@@ -121,6 +127,9 @@ class PlaybackServiceTest {
 
     @Test
     void streamObservation_isIgnoredForNonCurrentTrack_andFallbackTracksHighestPosition() {
+        stubDefaultActivePlaylist();
+        when(trackRepository.findById("t1")).thenReturn(Optional.of(track("t1", 120L)));
+
         playbackService.setTransportState(TransportState.PLAYING);
         playbackService.observeStream("t2", 59, 60);
         assertThat(playbackService.getState().positionSeconds()).isZero();
@@ -131,6 +140,9 @@ class PlaybackServiceTest {
 
     @Test
     void plausiblePositionReport_isPreservedAfterLaterStreamObservation() {
+        stubDefaultActivePlaylist();
+        when(trackRepository.findById("t1")).thenReturn(Optional.of(track("t1", 120L)));
+
         playbackService.setTransportState(TransportState.PLAYING);
         playbackService.observeStream("t1", 59, 120);
         playbackService.reportPosition("t1", 42);
@@ -141,42 +153,43 @@ class PlaybackServiceTest {
     }
 
     @Test
-    void persistentPlayback_usesAndWritesTheActivePlaylistsMode() {
-        PlaylistService persistentPlaylists = Mockito.mock(PlaylistService.class);
-        TrackRepository tracks = Mockito.mock(TrackRepository.class);
-        PlaybackStateRepository states = Mockito.mock(PlaybackStateRepository.class);
+    void persistentPlayback_usesAndWritesTheActivePlaylistsMode(
+            @Mock PlaylistService persistentPlaylists,
+            @Mock TrackRepository tracks,
+            @Mock PlaybackStateRepository states
+    ) {
         Playlist playlist = new Playlist("p1", "Playlist", List.of("t1"), PlaybackMode.RANDOM);
         when(persistentPlaylists.getActive()).thenReturn(playlist);
         when(persistentPlaylists.select("p1")).thenReturn(playlist);
-        when(tracks.findById("t1"))
-            .thenReturn(Optional.of(new FileTrack("t1", Map.of(), 120L, TrackState.healthy(), "t1.mp3", "mp3")));
         PlaybackService persistentPlayback = new PlaybackService(persistentPlaylists, tracks, states, selectorRegistry);
 
         assertThat(persistentPlayback.selectPlaylist("p1").playbackMode()).isEqualTo(PlaybackMode.RANDOM);
         persistentPlayback.setMode(PlaybackMode.SEQUENTIAL);
 
-        Mockito.verify(persistentPlaylists).setMode("p1", PlaybackMode.SEQUENTIAL);
+        verify(persistentPlaylists).setMode("p1", PlaybackMode.SEQUENTIAL);
         assertThat(persistentPlayback.getState().playbackMode()).isEqualTo(PlaybackMode.SEQUENTIAL);
     }
 
     @Test
-    void restoredPlayingState_becomesPausedAtPersistedPosition() {
-        PlaybackStateRepository states = Mockito.mock(PlaybackStateRepository.class);
-        PlaylistService persistentPlaylists = Mockito.mock(PlaylistService.class);
-        TrackRepository tracks = Mockito.mock(TrackRepository.class);
+    void restoredPlayingState_becomesPausedAtPersistedPosition(
+            @Mock PlaybackStateRepository states,
+            @Mock PlaylistService persistentPlaylists
+    ) {
         Playlist playlist = new Playlist("p1", "Playlist", List.of("t1"));
         when(states.find("default"))
             .thenReturn(Optional.of(new PlaybackState("p1", "t1", PlaybackMode.SEQUENTIAL, TransportState.PLAYING, 37)));
-        when(persistentPlaylists.select("p1")).thenReturn(playlist);
-        when(persistentPlaylists.getActive()).thenReturn(playlist);
-        when(tracks.findById("t1")).thenReturn(Optional.of(track("t1", 120L)));
+        when(persistentPlaylists.getPlaylist("p1")).thenReturn(playlist);
 
-        PlaybackService restored = new PlaybackService(persistentPlaylists, tracks, states, selectorRegistry);
+        PlaybackService restored = new PlaybackService(persistentPlaylists, trackRepository, states, selectorRegistry);
         restored.restoreState();
 
         assertThat(restored.getState().transportState()).isEqualTo(TransportState.PAUSED);
         assertThat(restored.getState().positionSeconds()).isEqualTo(37);
-        Mockito.verify(persistentPlaylists).activate("p1");
+        verify(persistentPlaylists).activate("p1");
+    }
+
+    private void stubDefaultActivePlaylist() {
+        when(playlistService.getActive()).thenReturn(new Playlist("all-tracks", "All Tracks", List.of("t1", "t2")));
     }
 
     private Track track(String id, long duration) {

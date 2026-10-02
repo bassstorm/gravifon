@@ -2,7 +2,7 @@ spring:
   application:
     name: gravifon
   datasource:
-    url: jdbc:h2:file:${GRAVIFON_CONFIG_DIR:/config}/gravifon;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:file:${gravifon.config-dir}/gravifon;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password: ""

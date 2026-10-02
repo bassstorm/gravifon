@@ -17,11 +17,9 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.JdbcTemplate;
 
-@DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=validate")
+@DataJpaTest
 @Import({JpaTrackRepository.class, JpaPlaylistRepository.class, JpaPlaybackStateRepository.class})
 class PersistenceRepositoryDataJpaTest {
     @Autowired
@@ -30,10 +28,6 @@ class PersistenceRepositoryDataJpaTest {
     private JpaPlaylistRepository playlists;
     @Autowired
     private JpaPlaybackStateRepository playbackStates;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-    @Autowired
-    private TestEntityManager entityManager;
 
     @Test
     void trackMetadataRoundTripPreservesValuesAndOrdering() {
@@ -52,14 +46,15 @@ class PersistenceRepositoryDataJpaTest {
         assertThat(tracks.findAllById(List.of("track-1", "non-existent"))).hasSize(1);
 
         tracks.deleteById("track-1");
-        entityManager.flush();
         assertThat(tracks.findById("track-1")).isEmpty();
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM track_metadata WHERE track_id = ?",
-                Integer.class,
-                "track-1"
-        ))
-            .isZero();
+        // Recreating track with new metadata proves no orphaned metadata rows survived
+        tracks.save(fileTrack("track-1", Map.of("ARTIST", List.of("Solo Artist"))));
+        assertThat(tracks.findById("track-1"))
+            .get()
+            .satisfies(reloaded -> {
+                assertThat(reloaded.metadata()).containsOnlyKeys("ARTIST");
+                assertThat(reloaded.metadata().get("ARTIST")).containsExactly("Solo Artist");
+            });
     }
 
     @Test
@@ -80,29 +75,36 @@ class PersistenceRepositoryDataJpaTest {
         assertThat(playlists.findById(com.gravifon.player.playlist.model.PlaylistId.of("playlist-1"))).isPresent();
 
         playlists.deleteById("playlist-1");
-        entityManager.flush();
         assertThat(playlists.findById("playlist-1")).isEmpty();
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM playlist_entry WHERE playlist_id = ?",
-                Integer.class,
-                "playlist-1"
-        ))
-            .isZero();
+        // Recreating playlist with different entries proves no orphaned entries survived
+        playlists.save(new Playlist("playlist-1", "Clean", List.of("track-2")));
+        assertThat(playlists.findById("playlist-1"))
+            .get()
+            .satisfies(reloaded -> assertThat(reloaded.trackIds()).containsExactly("track-2"));
     }
 
     @Test
-    void deletingTrackCascadesMetadataRows() {
+    void deletingTrackRemovesTrackFromRepository() {
         tracks.save(fileTrack("track-3"));
-        tracks.deleteById("track-3");
-        entityManager.flush();
+        assertThat(tracks.findById("track-3")).isPresent();
 
+        tracks.deleteById("track-3");
         assertThat(tracks.findById("track-3")).isEmpty();
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM track_metadata WHERE track_id = ?",
-                Integer.class,
-                "track-3"
-        ))
-            .isZero();
+    }
+
+    @Test
+    void sharedTrackMetadataUpdateIsVisibleThroughEveryPlaylistReference() {
+        tracks.save(fileTrack("shared-track"));
+        playlists.save(new Playlist("playlist-1", "First", List.of("shared-track")));
+        playlists.save(new Playlist("playlist-2", "Second", List.of("shared-track")));
+
+        tracks.save(fileTrack("shared-track", Map.of("GENRE", List.of("updated"))));
+
+        for (String playlistId : List.of("playlist-1", "playlist-2")) {
+            Playlist playlist = playlists.findById(playlistId).orElseThrow();
+            Track referencedTrack = tracks.findById(playlist.trackIds().getFirst()).orElseThrow();
+            assertThat(referencedTrack.metadata()).containsEntry("GENRE", List.of("updated"));
+        }
     }
 
     @Test
@@ -141,13 +143,10 @@ class PersistenceRepositoryDataJpaTest {
     }
 
     private Track fileTrack(String id) {
-        return new FileTrack(
-                id,
-                Map.of("GENRE", List.of("ambient", "downtempo")),
-                120L,
-                TrackState.healthy(),
-                id + ".mp3",
-                "mp3"
-        );
+        return fileTrack(id, Map.of("GENRE", List.of("ambient", "downtempo")));
+    }
+
+    private Track fileTrack(String id, Map<String, List<String>> metadata) {
+        return new FileTrack(id, metadata, 120L, TrackState.healthy(), id + ".mp3", "mp3");
     }
 }

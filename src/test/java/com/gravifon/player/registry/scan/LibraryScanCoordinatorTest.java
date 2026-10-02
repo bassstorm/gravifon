@@ -2,7 +2,6 @@ package com.gravifon.player.registry.scan;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,24 +18,29 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.STRICT_STUBS)
 class LibraryScanCoordinatorTest {
+    @Mock
+    private LibraryScanner scanner;
+    @Mock
+    private TrackRepository repository;
+
     @Test
     void scanIndexesSupportedNestedFilesWithRelativeIdentity(@TempDir Path musicRoot) {
         GravifonProperties properties = new GravifonProperties();
         properties.setMusicRoot(musicRoot);
-        LibraryScanner scanner = mock(LibraryScanner.class);
         when(scanner.scan(any()))
             .thenReturn(List.of(new LibraryScanner.ScanFile("albums/classic/track.mp3", "mp3", true, Map.of(), 120L)));
-        TrackRepository repository = mock(TrackRepository.class);
         List<Track> stored = new ArrayList<>();
         when(repository.findAll()).thenAnswer(ignored -> List.copyOf(stored));
-        when(repository.findById(any(String.class)))
-            .thenAnswer(invocation -> stored
-                .stream()
-                .filter(track -> track.id().equals(invocation.getArgument(0)))
-                .findFirst());
         when(repository.save(any())).thenAnswer(invocation -> {
             Track track = invocation.getArgument(0);
             stored.removeIf(existing -> existing.id().equals(track.id()));
@@ -58,21 +62,14 @@ class LibraryScanCoordinatorTest {
     void unreadableFileIsRetainedAsReadErrorAndReadableRescanClearsIt(@TempDir Path musicRoot) {
         GravifonProperties properties = new GravifonProperties();
         properties.setMusicRoot(musicRoot);
-        LibraryScanner scanner = mock(LibraryScanner.class);
         LibraryScanner.ScanFile unreadable = new LibraryScanner.ScanFile("track.mp3", "mp3", false, Map.of(), null);
         LibraryScanner.ScanFile readable =
                 new LibraryScanner.ScanFile("track.mp3", "mp3", true, Map.of("TITLE", List.of("Ready")), 42L);
         AtomicInteger scanCount = new AtomicInteger();
         when(scanner.scan(any()))
             .thenAnswer(invocation -> scanCount.getAndIncrement() == 0 ? List.of(unreadable) : List.of(readable));
-        TrackRepository repository = mock(TrackRepository.class);
         List<Track> stored = new ArrayList<>();
         when(repository.findAll()).thenAnswer(ignored -> List.copyOf(stored));
-        when(repository.findById(any(String.class)))
-            .thenAnswer(invocation -> stored
-                .stream()
-                .filter(track -> track.id().equals(invocation.getArgument(0)))
-                .findFirst());
         when(repository.save(any())).thenAnswer(invocation -> {
             Track track = invocation.getArgument(0);
             stored.removeIf(existing -> existing.id().equals(track.id()));
@@ -95,9 +92,7 @@ class LibraryScanCoordinatorTest {
     void missingReferencedTrackIsTombstonedAndUnreferencedTrackIsRemoved(@TempDir Path musicRoot) {
         GravifonProperties properties = new GravifonProperties();
         properties.setMusicRoot(musicRoot);
-        LibraryScanner scanner = mock(LibraryScanner.class);
         when(scanner.scan(any())).thenReturn(List.of());
-        TrackRepository repository = mock(TrackRepository.class);
         Track referenced = new FileTrack("referenced", Map.of(), 1L, TrackState.healthy(), "kept.mp3", "mp3");
         Track unreferenced = new FileTrack("unreferenced", Map.of(), 1L, TrackState.healthy(), "removed.mp3", "mp3");
         when(repository.findAll()).thenReturn(List.of(referenced, unreferenced));

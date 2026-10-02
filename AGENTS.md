@@ -25,6 +25,14 @@ Prefer small, composable services and pure transformation methods over large mul
 - Keep domain repository ports separate from Spring Data `JpaRepository` stores, with persistence adapters implementing the domain ports.
 - Use `@DataJpaTest` with Flyway and Hibernate schema validation to verify entity mappings; do not bypass datasource replacement or import custom datasource configuration.
 
+### Test Isolation and Boundaries
+
+- Use `@Transactional` test rollback for integration tests that write to the database; reset in-memory singleton state separately when needed.
+- Keep test datasources in-memory through `application-test.yml` and avoid redundant JPA property overrides in test annotations.
+- Verify persistence through domain repositories and Spring Data JPA queries; do not use `JdbcTemplate`, raw SQL, or manual `EntityManager.flush()` calls in tests.
+- Use `@ExtendWith(MockitoExtension.class)` with `Strictness.STRICT_STUBS` for plain service unit tests, and stub only the scenario-specific repository results each test consumes.
+- Do not simulate repository filtering or persistence behavior in Mockito answers; test domain invariants directly and persistence boundaries with JPA tests.
+
 ### Logging severity (server and client)
 
 | Level | Intent |
