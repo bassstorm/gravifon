@@ -61,9 +61,10 @@ A correlation id represents **one active operation lifecycle**. The rules:
 
 ### Clean verification workflow
 
-Before marking any task done:
+Before marking any task done (when editing Java sources, apply formatting first):
 
 ```bash
+mvn spotless:apply
 mvn clean test
 mvn clean verify
 ```

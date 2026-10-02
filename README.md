@@ -22,6 +22,7 @@ is read-only; a client initializes playback with `POST /api/playback/init`.
 ## Build and verify
 
 ```bash
+mvn spotless:apply   # required when modifying Java sources
 mvn clean verify
 ```
 
