@@ -16,7 +16,7 @@ Spring Boot app
 ```
 
 **Bounded contexts:** `registry` → `playlist` → `playback` → `streaming` → `api`
-The registry, playlists, and playback context are stored in SQLite. `GET /api/playback`
+The registry, playlists, and playback context are stored in an embedded H2 database. `GET /api/playback`
 is read-only; a client initializes playback with `POST /api/playback/init`.
 
 ## Build and verify
@@ -66,8 +66,8 @@ docker compose up
 
 The Docker profile builds the image locally; Compose consumes it. Runtime configuration (mounts, ports, environment) is defined in the containerized-runtime spec.
 
-The container uses `/music` for the read-only library and `/config` for the SQLite
-database (`gravifon.db`). Compose uses Docker-managed volumes by default, so no
+The container uses `/music` for the read-only library and `/config` for the embedded
+database (`gravifon.mv.db`). Compose uses Docker-managed volumes by default, so no
 host directory is assumed or tracked. Set `GRAVIFON_LIBRARY_PATH` to a host music
 directory (for example, `~/Library`) and `GRAVIFON_CONFIG_PATH` to a host config
 directory when persistence outside Docker is required. Both variables also accept
