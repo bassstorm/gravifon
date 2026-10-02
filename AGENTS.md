@@ -17,6 +17,14 @@ Prefer small, composable services and pure transformation methods over large mul
 - Use `@MockitoBean` in Spring test slices, not the deprecated `@MockBean`
 - Coverage gate: ≥ 80% line coverage on business logic, enforced via JaCoCo in `mvn verify`
 
+### Persistence
+
+- Configure datasources declaratively with Spring Boot `spring.datasource.*` properties; avoid custom `DataSource` beans for database setup.
+- Use H2 for runtime persistence with its file stored under `GRAVIFON_CONFIG_DIR` (default `/config`), and use an isolated in-memory H2 database for tests.
+- Flyway owns schema creation and evolution. Keep Hibernate at `ddl-auto: validate`; do not use Hibernate schema creation or updates.
+- Keep domain repository ports separate from Spring Data `JpaRepository` stores, with persistence adapters implementing the domain ports.
+- Use `@DataJpaTest` with Flyway and Hibernate schema validation to verify entity mappings; do not bypass datasource replacement or import custom datasource configuration.
+
 ### Logging severity (server and client)
 
 | Level | Intent |

@@ -15,6 +15,7 @@ import com.gravifon.player.registry.service.TrackRegistry;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -32,12 +34,14 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class GravifonIntegrationTest {
+    private static final String DATABASE_URL = "jdbc:h2:mem:gravifon-it-" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1";
     @TempDir
     static Path musicRoot;
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("gravifon.music-root", () -> musicRoot.toString());
+        registry.add("spring.datasource.url", () -> DATABASE_URL);
     }
 
     @BeforeAll
@@ -54,16 +58,19 @@ class GravifonIntegrationTest {
     private TrackRegistry trackRegistry;
     @Autowired
     private PlaylistService playlistService;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
     private String playlistId;
 
     @BeforeEach
     void refreshCatalogAndPlaylists() {
+        jdbcTemplate.update("DELETE FROM playback_state");
+        jdbcTemplate.update("DELETE FROM playlist_entry");
+        jdbcTemplate.update("DELETE FROM playlist");
+        jdbcTemplate.update("DELETE FROM track_metadata");
+        jdbcTemplate.update("DELETE FROM track");
         trackRegistry.refresh();
-        if (playlistService.listPlaylists().isEmpty()) {
-            playlistId = playlistService.materializeCatalog("Integration Playlist").id();
-        } else {
-            playlistId = playlistService.listPlaylists().getFirst().id();
-        }
+        playlistId = playlistService.materializeCatalog("Integration Playlist").id();
         playlistService.select(playlistId);
     }
 

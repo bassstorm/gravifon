@@ -30,6 +30,9 @@ class PlaybackRestartIntegrationTest {
         String[] properties = {
                 "gravifon.music-root=" + musicRoot,
                 "gravifon.config-dir=" + configDir,
+                "spring.datasource.url=jdbc:h2:file:"
+                + configDir.resolve("gravifon")
+                + ";DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
                 "gravifon.startup-scan-enabled=false",
                 "gravifon.streams.refresh-enabled=false",
                 "spring.main.web-application-type=none"
@@ -48,6 +51,7 @@ class PlaybackRestartIntegrationTest {
                     "REPORTED"
             );
         }
+        assertThat(Files.exists(configDir.resolve("gravifon.mv.db"))).isTrue();
 
         try (ConfigurableApplicationContext restarted = context(properties)) {
             PlaybackState restored = restarted.getBean(PlaybackService.class).getState();

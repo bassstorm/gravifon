@@ -43,6 +43,8 @@ public class JpaPlaylistRepository implements PlaylistRepository {
             .findById(playlist.id())
             .orElseGet(() -> new PlaylistEntity(playlist.id(), playlist.name(), playlist.playbackMode().name(), now));
         entity.update(playlist.name(), playlist.playbackMode().name(), now);
+        entity.replaceEntries(List.of());
+        store.flush();
         entity.replaceEntries(IntStream
             .range(0, playlist.trackIds().size())
             .mapToObj(position -> new PlaylistEntryEntity(position, playlist.trackIds().get(position)))

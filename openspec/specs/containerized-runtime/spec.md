@@ -39,7 +39,7 @@ The system MUST support mounting host directories or named volumes into `/music`
 
 #### Scenario: Host library and configuration directories selected
 - **WHEN** a user starts Compose with `GRAVIFON_LIBRARY_PATH` and `GRAVIFON_CONFIG_PATH` set to host directories
-- **THEN** the library is mounted read-only at `/music`, SQLite state is stored at `/config`, and both locations are used by the application
+- **THEN** the library is mounted read-only at `/music`, persistent database state is stored at `/config`, and both locations are used by the application
 
 #### Scenario: No host volume paths provided
 - **WHEN** a user starts Compose without `GRAVIFON_LIBRARY_PATH` or `GRAVIFON_CONFIG_PATH`
@@ -47,7 +47,7 @@ The system MUST support mounting host directories or named volumes into `/music`
 
 #### Scenario: Host configuration persists state
 - **WHEN** a user sets `GRAVIFON_CONFIG_PATH` to a host directory
-- **THEN** SQLite state under `/config` survives container removal and recreation
+- **THEN** database state under `/config` survives container removal and recreation
 
 #### Scenario: Named volumes are supported
 - **WHEN** an operator sets either volume path variable to a Docker named volume

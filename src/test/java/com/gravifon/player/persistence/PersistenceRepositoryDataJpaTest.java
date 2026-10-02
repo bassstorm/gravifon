@@ -2,7 +2,6 @@ package com.gravifon.player.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.gravifon.player.config.SqliteDataSourceConfiguration;
 import com.gravifon.player.playback.model.PlaybackMode;
 import com.gravifon.player.playback.model.PlaybackState;
 import com.gravifon.player.playback.model.TransportState;
@@ -17,34 +16,24 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.jdbc.core.JdbcTemplate;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({
-        SqliteDataSourceConfiguration.class,
-        JpaTrackRepository.class,
-        JpaPlaylistRepository.class,
-        JpaPlaybackStateRepository.class
-})
+@DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=validate")
+@Import({JpaTrackRepository.class, JpaPlaylistRepository.class, JpaPlaybackStateRepository.class})
 class PersistenceRepositoryDataJpaTest {
-    private static final String CONFIG_DIR = "/tmp/gravifon-jpa-test-" + System.nanoTime();
     @Autowired
     private JpaTrackRepository tracks;
     @Autowired
     private JpaPlaylistRepository playlists;
     @Autowired
     private JpaPlaybackStateRepository playbackStates;
-
-    @DynamicPropertySource
-    static void databaseProperties(DynamicPropertyRegistry registry) {
-        registry.add("gravifon.config-dir", () -> CONFIG_DIR);
-        registry.add("gravifon.music-root", () -> "/tmp/music");
-    }
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private TestEntityManager entityManager;
 
     @Test
     void trackMetadataRoundTripPreservesValuesAndOrdering() {
@@ -61,6 +50,16 @@ class PersistenceRepositoryDataJpaTest {
         assertThat(tracks.existsById(com.gravifon.player.registry.model.TrackId.of("track-1"))).isTrue();
         assertThat(tracks.existsById("non-existent")).isFalse();
         assertThat(tracks.findAllById(List.of("track-1", "non-existent"))).hasSize(1);
+
+        tracks.deleteById("track-1");
+        entityManager.flush();
+        assertThat(tracks.findById("track-1")).isEmpty();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM track_metadata WHERE track_id = ?",
+                Integer.class,
+                "track-1"
+        ))
+            .isZero();
     }
 
     @Test
@@ -79,14 +78,31 @@ class PersistenceRepositoryDataJpaTest {
                 assertThat(reloaded.playbackMode()).isEqualTo(PlaybackMode.RANDOM);
             });
         assertThat(playlists.findById(com.gravifon.player.playlist.model.PlaylistId.of("playlist-1"))).isPresent();
+
+        playlists.deleteById("playlist-1");
+        entityManager.flush();
+        assertThat(playlists.findById("playlist-1")).isEmpty();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM playlist_entry WHERE playlist_id = ?",
+                Integer.class,
+                "playlist-1"
+        ))
+            .isZero();
     }
 
     @Test
     void deletingTrackCascadesMetadataRows() {
         tracks.save(fileTrack("track-3"));
         tracks.deleteById("track-3");
+        entityManager.flush();
 
         assertThat(tracks.findById("track-3")).isEmpty();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM track_metadata WHERE track_id = ?",
+                Integer.class,
+                "track-3"
+        ))
+            .isZero();
     }
 
     @Test
@@ -111,6 +127,9 @@ class PersistenceRepositoryDataJpaTest {
         );
 
         playbackStates.save("default", first, first.positionOrigin());
+        assertThat(playbackStates.find("default"))
+            .get()
+            .satisfies(state -> assertThat(state.positionSeconds()).isEqualTo(12));
         playbackStates.save("default", second, second.positionOrigin());
 
         assertThat(playbackStates.find("default"))

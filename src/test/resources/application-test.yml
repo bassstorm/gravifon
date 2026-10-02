@@ -1,3 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:gravifontest;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
 gravifon:
   config-dir: ${GRAVIFON_CONFIG_DIR:${java.io.tmpdir}/gravifon-test}
   startup-scan-enabled: false
