@@ -21,6 +21,7 @@ import java.util.concurrent.TimeoutException;
 import lombok.RequiredArgsConstructor;
 import org.jmolecules.architecture.onion.simplified.ApplicationRing;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @ApplicationRing
 @Service
@@ -120,7 +121,7 @@ public class StreamRefreshService {
                     StreamResolver.ResolvedStream resolved = CompletableFuture
                         .supplyAsync(() -> resolver.refreshStream(current))
                         .get(properties.getStreams().getRefreshTimeout().toMillis(), TimeUnit.MILLISECONDS);
-                    if (resolved == null || resolved.streamUrl() == null || resolved.streamUrl().isBlank()) {
+                    if (resolved == null || !StringUtils.hasText(resolved.streamUrl())) {
                         throw new IOException("Resolver returned no stream URL");
                     }
                     Track updated =
@@ -171,6 +172,7 @@ public class StreamRefreshService {
 
     private String failureMessage(Exception failure) {
         Throwable cause = failure.getCause() == null ? failure : failure.getCause();
-        return cause.getMessage() == null ? cause.toString() : cause.getMessage();
+        String message = cause.getMessage();
+        return StringUtils.hasText(message) ? message : cause.toString();
     }
 }

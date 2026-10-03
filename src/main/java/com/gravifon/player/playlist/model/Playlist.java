@@ -3,6 +3,7 @@ package com.gravifon.player.playlist.model;
 import com.gravifon.player.playback.model.PlaybackMode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 import org.jmolecules.ddd.types.AggregateRoot;
 
@@ -14,6 +15,14 @@ public record Playlist(String id, String name, List<String> trackIds, PlaybackMo
     }
 
     public Playlist {
+        Objects.requireNonNull(id, "id");
+        if (id.isBlank()) {
+            throw new IllegalArgumentException("Playlist id must not be blank");
+        }
+        Objects.requireNonNull(name, "name");
+        if (name.isBlank()) {
+            throw new IllegalArgumentException("Playlist name must not be blank");
+        }
         trackIds = List.copyOf(trackIds);
         playbackMode = playbackMode == null ? PlaybackMode.SEQUENTIAL : playbackMode;
     }

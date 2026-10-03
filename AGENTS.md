@@ -33,6 +33,18 @@ Prefer small, composable services and pure transformation methods over large mul
 - Use `@ExtendWith(MockitoExtension.class)` with `Strictness.STRICT_STUBS` for plain service unit tests, and stub only the scenario-specific repository results each test consumes.
 - Do not simulate repository filtering or persistence behavior in Mockito answers; test domain invariants directly and persistence boundaries with JPA tests.
 
+### Controller Boundaries, Validation, and Errors
+
+- Keep controllers strictly presentation-focused: handle routing, request decoding, and status translation without opening transaction boundaries.
+- Encapsulate multi-step mutations and aggregate orchestration in atomic, `@Transactional` application-service methods rather than chaining operations in controllers.
+- Separate presentation DTOs from application contracts: keep request models in the infrastructure ring and map them to application commands before invoking services.
+- Validate request inputs declaratively at the boundary using Bean Validation annotations (`@Valid`) to reject malformed or invalid payloads before reaching business logic.
+- Use dedicated request DTOs for create and update operations; keep operation-specific invariants such as catalog exclusivity authoritative in the application service.
+- Model conditional track-failure reporting without null-bypass regex constraints, and expose explicit service operations for reporting failures and clearing them.
+- Apply container-element constraints to nested payload collections and validate defensively in application services so invalid direct calls fail explicitly rather than with `NullPointerException`.
+- Bind domain enums directly to request parameters and path variables using their canonical uppercase names.
+- Keep domain logic free of HTTP semantics: domain exceptions represent missing entities or business rule violations, which the presentation exception handler maps to appropriate HTTP status codes (e.g. missing entities to 404, input contract violations to 400).
+
 ### Logging severity (server and client)
 
 | Level | Intent |

@@ -73,4 +73,23 @@ class TrackPolymorphismTest {
         assertThat(refreshed.streamUrl()).isEqualTo("https://stream/fresh");
         assertThat(refreshed.isStreamUrlFresh(now)).isTrue();
     }
+
+    @Test
+    void withMetadataRetainsDomainValueWithoutReconstruction() {
+        FileTrack original =
+                new FileTrack(
+                        "f1",
+                        Map.of("TITLE", List.of("Song")),
+                        120L,
+                        TrackState.healthy(),
+                        "music/song.mp3",
+                        "mp3"
+        );
+        TrackMetadata metadata = new TrackMetadata(Map.of("ARTIST", List.of("Artist")));
+
+        FileTrack updated = original.withMetadata(metadata);
+
+        assertThat(updated.trackMetadata()).isSameAs(metadata);
+        assertThat(updated.metadata()).containsOnlyKeys("ARTIST").containsEntry("ARTIST", List.of("Artist"));
+    }
 }

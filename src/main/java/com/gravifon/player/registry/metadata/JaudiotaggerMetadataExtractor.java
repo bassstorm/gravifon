@@ -15,6 +15,7 @@ import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.TagField;
 import org.jmolecules.architecture.onion.simplified.InfrastructureRing;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @InfrastructureRing
 @Slf4j
@@ -46,9 +47,12 @@ public class JaudiotaggerMetadataExtractor implements MetadataExtractor {
                     TagField field = fields.next();
                     String key = field.getId().toUpperCase(Locale.ROOT);
                     if (!values.containsKey(key)) {
-                        values
-                            .computeIfAbsent(key, ignored -> new ArrayList<>())
-                            .add(rawValue(field));
+                        String value = rawValue(field);
+                        if (StringUtils.hasText(value)) {
+                            values
+                                .computeIfAbsent(key, ignored -> new ArrayList<>())
+                                .add(value);
+                        }
                     }
                 }
             }
@@ -67,7 +71,7 @@ public class JaudiotaggerMetadataExtractor implements MetadataExtractor {
     private void addValues(Map<String, List<String>> values, String key, List<TagField> fields) {
         for (TagField field : fields) {
             String value = field.toString();
-            if (!value.isBlank()) {
+            if (StringUtils.hasText(value)) {
                 values
                     .computeIfAbsent(key, ignored -> new ArrayList<>())
                     .add(value);

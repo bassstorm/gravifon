@@ -1,6 +1,6 @@
 package com.gravifon.player.playback.service;
 
-import com.gravifon.player.error.ResourceNotFoundException;
+import com.gravifon.player.error.EntityNotFoundException;
 import com.gravifon.player.playback.model.PlaybackMode;
 import com.gravifon.player.playback.model.PlaybackSession;
 import com.gravifon.player.playback.model.PlaybackState;
@@ -38,7 +38,7 @@ public class PlaybackService {
                     if (pl != null) {
                         mode = pl.playbackMode();
                     }
-                } catch (ResourceNotFoundException ignored) {
+                } catch (EntityNotFoundException ignored) {
                     return;
                 }
             }
@@ -127,7 +127,7 @@ public class PlaybackService {
     private List<String> activeTrackIds() {
         try {
             return playlistService.getActive().trackIds();
-        } catch (ResourceNotFoundException e) {
+        } catch (EntityNotFoundException e) {
             return List.of();
         }
     }

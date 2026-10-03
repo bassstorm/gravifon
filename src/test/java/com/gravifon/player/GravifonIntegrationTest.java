@@ -135,7 +135,7 @@ class GravifonIntegrationTest {
             .andExpect(jsonPath("$.transportState").value("stopped"));
 
         mockMvc
-            .perform(post("/api/playback/transport/playing"))
+            .perform(post("/api/playback/transport/PLAYING"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.transportState").value("playing"));
 
@@ -153,12 +153,12 @@ class GravifonIntegrationTest {
             .andExpect(jsonPath("$.currentTrackId", notNullValue()));
         // Switch to random mode
         mockMvc
-            .perform(post("/api/playback/mode/random"))
+            .perform(post("/api/playback/mode/RANDOM"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.playbackMode").value("random"));
 
         mockMvc
-            .perform(post("/api/playback/transport/stopped"))
+            .perform(post("/api/playback/transport/STOPPED"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.transportState").value("stopped"))
             .andExpect(jsonPath("$.positionSeconds").value(0));

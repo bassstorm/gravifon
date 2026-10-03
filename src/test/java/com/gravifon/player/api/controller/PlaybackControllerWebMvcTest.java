@@ -4,6 +4,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -77,11 +78,11 @@ class PlaybackControllerWebMvcTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.currentTrackId").value("t2"));
         mockMvc
-            .perform(post("/api/playback/mode/random"))
+            .perform(post("/api/playback/mode/RANDOM"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.playbackMode").value("random"));
         mockMvc
-            .perform(post("/api/playback/transport/paused"))
+            .perform(post("/api/playback/transport/PAUSED"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.transportState").value("paused"));
         mockMvc
@@ -102,17 +103,49 @@ class PlaybackControllerWebMvcTest {
     @Test
     void setMode_rejectsInvalidModeAsBadRequest() throws Exception {
         mockMvc
-            .perform(post("/api/playback/mode/not-a-mode").accept(MediaType.APPLICATION_JSON))
+            .perform(post("/api/playback/mode/random").accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.status").value(400));
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.message").value("Invalid parameter: mode"));
     }
 
     @Test
     void setTransport_rejectsInvalidTransportAsBadRequest() throws Exception {
         mockMvc
-            .perform(post("/api/playback/transport/not-a-transport").accept(MediaType.APPLICATION_JSON))
+            .perform(post("/api/playback/transport/paused").accept(MediaType.APPLICATION_JSON))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.status").value(400));
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.message").value("Invalid parameter: transportState"));
+    }
+
+    @Test
+    void reportPosition_rejectsNegativePosition() throws Exception {
+        mockMvc
+            .perform(post("/api/playback/position")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"trackId\":\"t1\",\"positionSeconds\":-1}")
+            )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("positionSeconds")));
+    }
+
+    @Test
+    void malformedBodyReturnsStandardBadRequest() throws Exception {
+        mockMvc
+            .perform(post("/api/playback/position").contentType(MediaType.APPLICATION_JSON).content("{"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.message").value("Malformed JSON request body"));
+    }
+
+    @Test
+    void unsupportedMethodReturnsStandardMethodNotAllowed() throws Exception {
+        mockMvc
+            .perform(put("/api/playback"))
+            .andExpect(status().isMethodNotAllowed())
+            .andExpect(jsonPath("$.status").value(405))
+            .andExpect(jsonPath("$.message").value("Method not allowed: PUT"));
     }
 
     @Test

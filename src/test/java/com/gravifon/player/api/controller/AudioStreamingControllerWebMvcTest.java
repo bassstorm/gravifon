@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.gravifon.player.api.error.ApiExceptionHandler;
+import com.gravifon.player.error.EntityNotFoundException;
 import com.gravifon.player.observability.CorrelationIdFilter;
 import com.gravifon.player.playback.service.PlaybackService;
 import com.gravifon.player.registry.model.FileTrack;
@@ -19,7 +20,6 @@ import com.gravifon.player.streaming.AudioStreamingService;
 import com.gravifon.player.streaming.StreamProxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,8 +47,8 @@ class AudioStreamingControllerWebMvcTest {
     @Test
     void streamTrack_withoutRange_returnsWholeResource() throws Exception {
         Path track = createTrackFile("track.mp3", "0123456789");
-        when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(fileTrack("t1", "mp3")));
-        when(trackRegistry.resolveTrackPath("t1")).thenReturn(Optional.of(track));
+        when(trackRegistry.getTrack("t1")).thenReturn(fileTrack("t1", "mp3"));
+        when(trackRegistry.resolveTrackPath("t1")).thenReturn(track);
 
         mockMvc
             .perform(get("/api/stream/t1").accept(MediaType.ALL))
@@ -63,8 +63,8 @@ class AudioStreamingControllerWebMvcTest {
     @Test
     void streamTrack_withClosedRange_returnsPartialContent() throws Exception {
         Path track = createTrackFile("track.mp3", "0123456789");
-        when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(fileTrack("t1", "mp3")));
-        when(trackRegistry.resolveTrackPath("t1")).thenReturn(Optional.of(track));
+        when(trackRegistry.getTrack("t1")).thenReturn(fileTrack("t1", "mp3"));
+        when(trackRegistry.resolveTrackPath("t1")).thenReturn(track);
 
         mockMvc
             .perform(get("/api/stream/t1").header(HttpHeaders.RANGE, "bytes=2-5"))
@@ -78,8 +78,8 @@ class AudioStreamingControllerWebMvcTest {
     @Test
     void streamTrack_withOpenEndedRange_returnsPartialContentToEnd() throws Exception {
         Path track = createTrackFile("track.ogg", "abcdefghij");
-        when(trackRegistry.findTrackById("t2")).thenReturn(Optional.of(fileTrack("t2", "ogg")));
-        when(trackRegistry.resolveTrackPath("t2")).thenReturn(Optional.of(track));
+        when(trackRegistry.getTrack("t2")).thenReturn(fileTrack("t2", "ogg"));
+        when(trackRegistry.resolveTrackPath("t2")).thenReturn(track);
 
         mockMvc
             .perform(get("/api/stream/t2").header(HttpHeaders.RANGE, "bytes=6-"))
@@ -92,8 +92,8 @@ class AudioStreamingControllerWebMvcTest {
     @Test
     void streamTrack_withUnsatisfiableRange_returns416() throws Exception {
         Path track = createTrackFile("track.flac", "abcdefghij");
-        when(trackRegistry.findTrackById("t3")).thenReturn(Optional.of(fileTrack("t3", "flac")));
-        when(trackRegistry.resolveTrackPath("t3")).thenReturn(Optional.of(track));
+        when(trackRegistry.getTrack("t3")).thenReturn(fileTrack("t3", "flac"));
+        when(trackRegistry.resolveTrackPath("t3")).thenReturn(track);
 
         mockMvc
             .perform(get("/api/stream/t3").header(HttpHeaders.RANGE, "bytes=100-120"))
@@ -103,7 +103,7 @@ class AudioStreamingControllerWebMvcTest {
 
     @Test
     void streamTrack_withUnknownTrack_returns404() throws Exception {
-        when(trackRegistry.resolveTrackPath("missing")).thenReturn(Optional.empty());
+        when(trackRegistry.getTrack("missing")).thenThrow(new EntityNotFoundException("Track not found: missing"));
 
         mockMvc
             .perform(get("/api/stream/missing"))

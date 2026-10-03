@@ -1,6 +1,5 @@
 package com.gravifon.player.api.controller;
 
-import com.gravifon.player.error.ResourceNotFoundException;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackKind;
 import com.gravifon.player.registry.service.TrackRegistry;
@@ -27,16 +26,12 @@ public class AudioStreamingController {
     @GetMapping("/{trackId}")
     public void streamTrack(@PathVariable String trackId, HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        Track track = trackRegistry
-            .findTrackById(trackId)
-            .orElseThrow(() -> new ResourceNotFoundException("Track not found: " + trackId));
+        Track track = trackRegistry.getTrack(trackId);
         if (track.kind() == TrackKind.STREAM) {
             streamProxy.proxy(track, request, response);
             return;
         }
-        Path trackPath = trackRegistry
-            .resolveTrackPath(trackId)
-            .orElseThrow(() -> new ResourceNotFoundException("Track not found: " + trackId));
+        Path trackPath = trackRegistry.resolveTrackPath(trackId);
 
         audioStreamingService.streamFile(trackId, trackPath, request, response);
     }

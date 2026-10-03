@@ -3,8 +3,8 @@ package com.gravifon.player.api.controller;
 import com.gravifon.player.api.model.TrackMetadataUpdateRequest;
 import com.gravifon.player.api.model.TrackResponse;
 import com.gravifon.player.api.model.TrackStateReportRequest;
-import com.gravifon.player.error.ResourceNotFoundException;
 import com.gravifon.player.registry.service.TrackRegistry;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,20 +28,23 @@ public class TrackController {
 
     @GetMapping("/{trackId}")
     public TrackResponse getTrack(@PathVariable String trackId) {
-        return trackRegistry
-            .findTrackById(trackId)
-            .map(TrackResponse::from)
-            .orElseThrow(() -> new ResourceNotFoundException("Track not found: " + trackId));
+        return TrackResponse.from(trackRegistry.getTrack(trackId));
     }
 
     @PatchMapping("/{trackId}/metadata")
-    public TrackResponse updateMetadata(@PathVariable String trackId, @RequestBody TrackMetadataUpdateRequest request) {
+    public TrackResponse updateMetadata(
+            @PathVariable String trackId,
+            @Valid @RequestBody TrackMetadataUpdateRequest request
+    ) {
         return TrackResponse.from(trackRegistry.updateMetadata(trackId, request.metadata()));
     }
 
     @PostMapping("/{trackId}/state")
-    public TrackResponse reportState(@PathVariable String trackId, @RequestBody TrackStateReportRequest request) {
-        return TrackResponse.from(trackRegistry.reportState(trackId, request.kind(), request.message(), request.clear())
+    public TrackResponse reportState(@PathVariable String trackId, @Valid @RequestBody TrackStateReportRequest request) {
+        return TrackResponse.from(
+                request.clear()
+                ? trackRegistry.clearError(trackId)
+                : trackRegistry.reportFailure(trackId, request.kind(), request.message())
         );
     }
 }

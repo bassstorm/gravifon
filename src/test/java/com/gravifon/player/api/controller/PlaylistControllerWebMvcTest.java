@@ -1,6 +1,9 @@
 package com.gravifon.player.api.controller;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -10,14 +13,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gravifon.player.api.error.ApiExceptionHandler;
+import com.gravifon.player.error.EntityNotFoundException;
 import com.gravifon.player.observability.CorrelationIdFilter;
 import com.gravifon.player.playback.model.PlaybackMode;
 import com.gravifon.player.playback.model.PlaybackState;
 import com.gravifon.player.playback.model.TransportState;
 import com.gravifon.player.playback.service.PlaybackService;
 import com.gravifon.player.playlist.model.Playlist;
+import com.gravifon.player.playlist.service.PlaylistMutation;
 import com.gravifon.player.playlist.service.PlaylistService;
-import com.gravifon.player.registry.service.StreamTrackRegistrar;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -38,8 +42,6 @@ class PlaylistControllerWebMvcTest {
     private PlaylistService playlistService;
     @MockitoBean
     private PlaybackService playbackService;
-    @MockitoBean
-    private StreamTrackRegistrar streamTrackRegistrar;
 
     @Test
     void listPlaylists_returnsDtosWithActiveFlag() throws Exception {
@@ -94,10 +96,8 @@ class PlaylistControllerWebMvcTest {
     @Test
     void playlistMutationEndpoints_persistChanges() throws Exception {
         Playlist playlist = new Playlist("p1", "Playlist", List.of());
-        when(playlistService.create(any(), any(), any())).thenReturn(playlist);
-        when(playlistService.getPlaylist("p1")).thenReturn(playlist);
-        when(playlistService.getActive()).thenReturn(playlist);
-        when(playlistService.rename("p1", "Renamed")).thenReturn(playlist);
+        when(playlistService.createFromRequest(any(PlaylistMutation.class))).thenReturn(playlist);
+        when(playlistService.updateFromRequest(eq("p1"), any(PlaylistMutation.class))).thenReturn(playlist);
 
         mockMvc
             .perform(post("/api/playlists")
@@ -116,5 +116,60 @@ class PlaylistControllerWebMvcTest {
             .andExpect(status().isOk());
 
         mockMvc.perform(delete("/api/playlists/p1")).andExpect(status().isNoContent());
+    }
+
+    @Test
+    void createPlaylist_rejectsBlankName() throws Exception {
+        mockMvc
+            .perform(post("/api/playlists").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\" \"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("name")));
+
+        verify(playlistService, never()).createFromRequest(any(PlaylistMutation.class));
+    }
+
+    @Test
+    void createPlaylist_rejectsCatalogWithEntries() throws Exception {
+        when(playlistService.createFromRequest(any(PlaylistMutation.class)))
+            .thenThrow(new IllegalArgumentException("Catalog materialization cannot include entries"));
+
+        mockMvc
+            .perform(post("/api/playlists")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Catalog\",\"catalog\":true,\"trackIds\":[\"track-1\"]}")
+            )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.message").value("Catalog materialization cannot include entries"));
+
+        verify(playlistService).createFromRequest(any(PlaylistMutation.class));
+    }
+
+    @Test
+    void getPlaylist_returns404WhenPlaylistIsMissing() throws Exception {
+        when(playlistService.getPlaylist("missing")).thenThrow(
+                new EntityNotFoundException("Playlist not found: missing")
+        );
+
+        mockMvc
+            .perform(get("/api/playlists/missing").accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.status").value(404))
+            .andExpect(jsonPath("$.message").value("Playlist not found: missing"));
+    }
+
+    @Test
+    void updatePlaylist_allowsOmittingOptionalName() throws Exception {
+        Playlist playlist = new Playlist("p1", "Playlist", List.of("track-1"));
+        when(playlistService.updateFromRequest(eq("p1"), any(PlaylistMutation.class))).thenReturn(playlist);
+
+        mockMvc
+            .perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .patch("/api/playlists/p1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"add\":[\"track-1\"]}")
+            )
+            .andExpect(status().isOk());
     }
 }

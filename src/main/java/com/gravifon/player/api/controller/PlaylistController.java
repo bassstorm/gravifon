@@ -1,17 +1,17 @@
 package com.gravifon.player.api.controller;
 
 import com.gravifon.player.api.model.PlaybackStateResponse;
-import com.gravifon.player.api.model.PlaylistMutationRequest;
+import com.gravifon.player.api.model.PlaylistCreateRequest;
 import com.gravifon.player.api.model.PlaylistResponse;
+import com.gravifon.player.api.model.PlaylistUpdateRequest;
 import com.gravifon.player.playback.service.PlaybackService;
 import com.gravifon.player.playlist.model.Playlist;
+import com.gravifon.player.playlist.service.PlaylistMutation;
 import com.gravifon.player.playlist.service.PlaylistService;
-import com.gravifon.player.registry.service.StreamTrackRegistrar;
-import java.util.ArrayList;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class PlaylistController {
     private final PlaylistService playlistService;
     private final PlaybackService playbackService;
-    private final StreamTrackRegistrar streamTrackRegistrar;
 
     @GetMapping
     public List<PlaylistResponse> listPlaylists() {
@@ -51,64 +50,42 @@ public class PlaylistController {
     }
 
     @PostMapping
-    @Transactional
-    public PlaylistResponse createPlaylist(@RequestBody PlaylistMutationRequest request) {
-        requireName(request.name());
-        if (Boolean.TRUE.equals(request.catalog())) {
-            if (!request.trackIds().isEmpty() || !request.sourceUrls().isEmpty()) {
-                throw new IllegalArgumentException("Catalog materialization cannot include entries");
-            }
-            return PlaylistResponse.from(
-                    playlistService.materializeCatalog(request.name()),
-                    playlistService.activeId().orElse(null)
-            );
-        }
-        List<String> trackIds = new ArrayList<>(request.trackIds());
-        if (!request.sourceUrls().isEmpty()) {
-            trackIds.addAll(streamTrackRegistrar
-                .registerSources(request.sourceUrls())
-                .stream()
-                .map(track -> track.id())
-                .toList()
-            );
-        }
+    public PlaylistResponse createPlaylist(@Valid @RequestBody PlaylistCreateRequest request) {
         return PlaylistResponse.from(
-                playlistService.create(request.name(), trackIds, request.mode()),
+                playlistService.createFromRequest(
+                        new PlaylistMutation(
+                                request.name(),
+                                request.trackIds(),
+                                request.sourceUrls(),
+                                request.catalog(),
+                                List.of(),
+                                List.of(),
+                                List.of(),
+                                request.mode()
+                        )
+                ),
                 playlistService.activeId().orElse(null)
         );
     }
 
-    @Transactional
     @org.springframework.web.bind.annotation.PatchMapping("/{playlistId}")
     public PlaylistResponse updatePlaylist(
             @PathVariable String playlistId,
-            @RequestBody PlaylistMutationRequest request
+            @Valid @RequestBody PlaylistUpdateRequest request
     ) {
-        Playlist playlist = playlistService.getPlaylist(playlistId);
-        if (request.name() != null) {
-            playlist = playlistService.rename(playlistId, request.name());
-        }
-        if (!request.reorder().isEmpty()) {
-            playlist = playlistService.reorder(playlistId, request.reorder());
-        }
-        List<String> additions = new ArrayList<>(request.add());
-        if (!request.sourceUrls().isEmpty()) {
-            additions.addAll(streamTrackRegistrar
-                .registerSources(request.sourceUrls())
-                .stream()
-                .map(track -> track.id())
-                .toList()
-            );
-        }
-        if (!additions.isEmpty()) {
-            playlist = playlistService.addEntries(playlistId, additions);
-        }
-        if (!request.remove().isEmpty()) {
-            playlist = playlistService.removeEntries(playlistId, request.remove());
-        }
-        if (request.mode() != null) {
-            playlist = playlistService.setMode(playlistId, request.mode());
-        }
+        Playlist playlist = playlistService.updateFromRequest(
+                playlistId,
+                new PlaylistMutation(
+                        request.name(),
+                        List.of(),
+                        List.of(),
+                        null,
+                        request.reorder(),
+                        request.add(),
+                        request.remove(),
+                        request.mode()
+                )
+        );
         return PlaylistResponse.from(playlist, playlistService.activeId().orElse(null));
     }
 
@@ -116,11 +93,5 @@ public class PlaylistController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deletePlaylist(@PathVariable String playlistId) {
         playlistService.delete(playlistId);
-    }
-
-    private void requireName(String name) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Playlist name is required");
-        }
     }
 }

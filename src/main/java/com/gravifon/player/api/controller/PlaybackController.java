@@ -5,6 +5,7 @@ import com.gravifon.player.api.model.PositionReportRequest;
 import com.gravifon.player.playback.model.PlaybackMode;
 import com.gravifon.player.playback.model.TransportState;
 import com.gravifon.player.playback.service.PlaybackService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,19 +46,17 @@ public class PlaybackController {
     }
 
     @PostMapping("/position")
-    public PlaybackStateResponse reportPosition(@RequestBody PositionReportRequest request) {
+    public PlaybackStateResponse reportPosition(@Valid @RequestBody PositionReportRequest request) {
         return PlaybackStateResponse.from(playbackService.reportPosition(request.trackId(), request.positionSeconds()));
     }
 
     @PostMapping("/mode/{mode}")
-    public PlaybackStateResponse setMode(@PathVariable String mode) {
-        PlaybackMode playbackMode = PlaybackMode.valueOf(mode.trim().toUpperCase());
-        return PlaybackStateResponse.from(playbackService.setMode(playbackMode));
+    public PlaybackStateResponse setMode(@PathVariable PlaybackMode mode) {
+        return PlaybackStateResponse.from(playbackService.setMode(mode));
     }
 
     @PostMapping("/transport/{transportState}")
-    public PlaybackStateResponse setTransportState(@PathVariable String transportState) {
-        TransportState state = TransportState.valueOf(transportState.trim().toUpperCase());
-        return PlaybackStateResponse.from(playbackService.setTransportState(state));
+    public PlaybackStateResponse setTransportState(@PathVariable TransportState transportState) {
+        return PlaybackStateResponse.from(playbackService.setTransportState(transportState));
     }
 }

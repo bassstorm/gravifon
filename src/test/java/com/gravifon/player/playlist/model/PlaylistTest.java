@@ -1,6 +1,7 @@
 package com.gravifon.player.playlist.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.gravifon.player.playback.model.PlaybackMode;
 import java.util.ArrayList;
@@ -73,5 +74,19 @@ class PlaylistTest {
 
         assertThat(playlist.trackIds()).containsExactly("a");
         assertThat(playlist.playbackMode()).isEqualTo(PlaybackMode.SEQUENTIAL);
+    }
+
+    @Test
+    void constructorAndRenameEnforceIdentityAndNameInvariants() {
+        assertThatThrownBy(() -> new Playlist(null, "Mix", List.of())).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new Playlist(" ", "Mix", List.of()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("id");
+        assertThatThrownBy(() -> new Playlist("p1", " ", List.of()))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("name");
+        assertThatThrownBy(() -> new Playlist("p1", "Mix", List.of()).rename(""))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("name");
     }
 }

@@ -18,7 +18,11 @@ public sealed interface Track extends AggregateRoot<Track, TrackId> permits File
 
     TrackKind kind();
 
-    Map<String, List<String>> metadata();
+    TrackMetadata trackMetadata();
+
+    default Map<String, List<String>> metadata() {
+        return trackMetadata().values();
+    }
 
     Long durationSeconds();
 
@@ -26,5 +30,5 @@ public sealed interface Track extends AggregateRoot<Track, TrackId> permits File
 
     Track withState(TrackState state);
 
-    Track withMetadata(Map<String, List<String>> metadata);
+    Track withMetadata(TrackMetadata metadata);
 }

@@ -14,6 +14,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -29,7 +30,7 @@ public class AudioStreamingService {
         }
 
         String rangeHeader = request.getHeader(HttpHeaders.RANGE);
-        ByteRange range = (rangeHeader == null || rangeHeader.isBlank()) ? null : parseRange(rangeHeader, fileLength);
+        ByteRange range = StringUtils.hasText(rangeHeader) ? parseRange(rangeHeader, fileLength) : null;
 
         response.setHeader(HttpHeaders.ACCEPT_RANGES, "bytes");
         response.setContentType(resolveContentType(trackPath).toString());

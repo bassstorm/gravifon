@@ -14,6 +14,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Component
 public class HttpStreamProxy implements StreamProxy {
@@ -39,7 +40,7 @@ public class HttpStreamProxy implements StreamProxy {
         HttpRequest.Builder builder =
                 HttpRequest.newBuilder(URI.create(streamTrack.streamUrl())).GET().timeout(Duration.ofSeconds(15));
         String range = request.getHeader("Range");
-        if (range != null && !range.isBlank()) {
+        if (StringUtils.hasText(range)) {
             builder.header("Range", range);
         }
         try {

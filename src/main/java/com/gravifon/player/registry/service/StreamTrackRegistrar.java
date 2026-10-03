@@ -10,6 +10,7 @@ import com.gravifon.player.registry.stream.StreamResolverRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class StreamTrackRegistrar {
@@ -21,6 +22,7 @@ public class StreamTrackRegistrar {
         this.resolverRegistry = resolverRegistry;
     }
 
+    @Transactional
     public List<Track> registerSources(List<String> sourceUrls) {
         List<Track> tracks = new ArrayList<>();
         for (String sourceUrl : sourceUrls) {

@@ -79,6 +79,20 @@ class StreamRefreshServiceTest {
     }
 
     @Test
+    void failedRefreshUsesNonBlankErrorWhenCauseMessageIsBlank() {
+        StreamTrack track = track("t1", Instant.parse("2025-12-31T23:59:59Z"));
+        StreamResolver resolver = mock(StreamResolver.class);
+        String fallbackMessage = new IllegalStateException(" ").toString();
+        when(resolverRegistry.resolverFor(track)).thenReturn(resolver);
+        when(resolver.refreshStream(track)).thenThrow(new IllegalStateException(" "));
+        when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(track));
+
+        assertThrows(IOException.class, () -> service.ensureFresh(track, NOW));
+
+        verify(trackRegistry).markStreamUnreachable("t1", "STREAM_UNREACHABLE", fallbackMessage);
+    }
+
+    @Test
     void slowRefreshTimesOutAndMarksTrackWithoutUpdatingUrl() throws Exception {
         StreamTrack track = track("t1", Instant.parse("2025-12-31T23:59:59Z"));
         StreamResolver resolver = mock(StreamResolver.class);

@@ -56,6 +56,10 @@ The system MUST expose an endpoint for clients to update a track's metadata, app
 - **WHEN** a client updates metadata for a file-backed track
 - **THEN** the API response is identical in shape to a stream-track update, with any source write-back handled server-side and invisible to the client
 
+#### Scenario: Metadata update for non-existent track
+- **WHEN** a client submits a metadata update for a track id that does not exist in the registry
+- **THEN** the server responds with a 404 Not Found error response
+
 ### Requirement: API supports client track-state reports
 The system MUST expose an endpoint for clients to report playback failures for a track, and MUST NOT automatically clear a track's failing state upon subsequent playback activity.
 
@@ -71,6 +75,10 @@ The system MUST expose an endpoint for clients to report playback failures for a
 - **WHEN** audio bytes for a previously failing track are successfully streamed
 - **THEN** the track's failing state remains unchanged unless explicitly cleared by a client or by a successful scan/refresh
 
+#### Scenario: State report for non-existent track
+- **WHEN** a client submits a state report for a track id that does not exist in the registry
+- **THEN** the server responds with a 404 Not Found error response
+
 ### Requirement: API surface separates data retrieval from state manipulation
 The system MUST expose two distinct endpoint categories: data-retrieval endpoints that are read-only and free of side effects, and state-manipulation endpoints that accept entity references (playlist id, track id, playback mode, transport state) and return the resulting playback snapshot.
 
@@ -81,6 +89,14 @@ The system MUST expose two distinct endpoint categories: data-retrieval endpoint
 #### Scenario: State-manipulation endpoint is entity-reference driven
 - **WHEN** a client calls a state-manipulation endpoint
 - **THEN** the request identifies the target by domain identifier (e.g. playlist id, track id, mode, transport state) rather than by client-computed data, and the response reflects the updated playback snapshot
+
+#### Scenario: Mode and transport state commands accept valid enum values
+- **WHEN** a client calls `/api/playback/mode/{mode}` or `/api/playback/transport/{transportState}` with an exact uppercase enum value (e.g., `RANDOM`, `PLAYING`)
+- **THEN** the server updates playback state and returns the snapshot
+
+#### Scenario: Mode and transport state commands reject invalid enum values
+- **WHEN** a client calls `/api/playback/mode/{mode}` or `/api/playback/transport/{transportState}` with an unrecognized enum name
+- **THEN** the server responds with a 400 Bad Request error response and does not alter playback state
 
 ### Requirement: API is agnostic to client playback architecture
 The system MUST express playback state and control purely through domain identifiers and generic operations that do not assume any particular client audio pipeline, buffering strategy, or streaming cadence.
@@ -121,3 +137,18 @@ The system MUST expose APIs for a single-user local-network scenario without aut
 #### Scenario: Multiple clients call API concurrently
 - **WHEN** more than one client issues requests at the same time
 - **THEN** the API behavior remains globally consistent for shared server playback context and does not establish per-user playback/session state
+
+### Requirement: API validates request payloads declaratively
+The system MUST validate all client-supplied mutation and report request payloads using declarative constraints before executing application logic, rejecting invalid payloads with standardized 400 Bad Request responses.
+
+#### Scenario: Missing or blank required field
+- **WHEN** a client submits a playlist mutation request with a missing or blank playlist name
+- **THEN** the server rejects the request with HTTP 400 Bad Request and details indicating the invalid field
+
+#### Scenario: Malformed request payload
+- **WHEN** a client sends a malformed JSON request body or payload containing unparseable values
+- **THEN** the server rejects the request with HTTP 400 Bad Request
+
+#### Scenario: Invalid position report
+- **WHEN** a client reports a playback position with a negative position seconds value
+- **THEN** the server rejects the request with HTTP 400 Bad Request
