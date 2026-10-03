@@ -25,7 +25,7 @@
     "remoteEnv": {
         "SSH_AUTH_SOCK": "/ssh-agent"
     },
-    "postCreateCommand": "npm install --global @fission-ai/openspec@1.10.0",
+    "postCreateCommand": "npm install --global @fission-ai/openspec@1.14.0",
     "customizations": {
         "vscode": {
             "extensions": [
