@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.gravifon.player.config.GravifonProperties;
+import com.gravifon.player.config.LibraryProperties;
 import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackState;
@@ -35,8 +35,7 @@ class LibraryScanCoordinatorTest {
 
     @Test
     void scanIndexesSupportedNestedFilesWithRelativeIdentity(@TempDir Path musicRoot) {
-        GravifonProperties properties = new GravifonProperties();
-        properties.setMusicRoot(musicRoot);
+        LibraryProperties properties = new LibraryProperties(musicRoot, true);
         when(scanner.scan(any()))
             .thenReturn(List.of(new LibraryScanner.ScanFile("albums/classic/track.mp3", "mp3", true, Map.of(), 120L)));
         List<Track> stored = new ArrayList<>();
@@ -60,8 +59,7 @@ class LibraryScanCoordinatorTest {
 
     @Test
     void unreadableFileIsRetainedAsReadErrorAndReadableRescanClearsIt(@TempDir Path musicRoot) {
-        GravifonProperties properties = new GravifonProperties();
-        properties.setMusicRoot(musicRoot);
+        LibraryProperties properties = new LibraryProperties(musicRoot, true);
         LibraryScanner.ScanFile unreadable = new LibraryScanner.ScanFile("track.mp3", "mp3", false, Map.of(), null);
         LibraryScanner.ScanFile readable =
                 new LibraryScanner.ScanFile("track.mp3", "mp3", true, Map.of("TITLE", List.of("Ready")), 42L);
@@ -90,8 +88,7 @@ class LibraryScanCoordinatorTest {
 
     @Test
     void missingReferencedTrackIsTombstonedAndUnreferencedTrackIsRemoved(@TempDir Path musicRoot) {
-        GravifonProperties properties = new GravifonProperties();
-        properties.setMusicRoot(musicRoot);
+        LibraryProperties properties = new LibraryProperties(musicRoot, true);
         when(scanner.scan(any())).thenReturn(List.of());
         Track referenced = new FileTrack("referenced", Map.of(), 1L, TrackState.healthy(), "kept.mp3", "mp3");
         Track unreferenced = new FileTrack("unreferenced", Map.of(), 1L, TrackState.healthy(), "removed.mp3", "mp3");

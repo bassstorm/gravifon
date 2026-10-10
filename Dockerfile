@@ -15,6 +15,10 @@ FROM eclipse-temurin:21-jre-jammy
 
 ARG PROJECT_VERSION=dev
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 LABEL org.opencontainers.image.title="Gravifon"
 LABEL org.opencontainers.image.description="Local-network audio player"
 LABEL org.opencontainers.image.source="https://github.com/gravifon/gravifon"
@@ -35,4 +39,3 @@ ENV GRAVIFON_CONFIG_DIR=/config
 ENV SPRING_PROFILES_ACTIVE=""
 
 ENTRYPOINT ["java", "-jar", "app.jar"]
-

@@ -1,6 +1,6 @@
 package com.gravifon.player.registry.service;
 
-import com.gravifon.player.config.GravifonProperties;
+import com.gravifon.player.config.LibraryProperties;
 import com.gravifon.player.error.EntityNotFoundException;
 import com.gravifon.player.registry.metadata.TagWriteBackHandler;
 import com.gravifon.player.registry.model.FileTrack;
@@ -26,7 +26,7 @@ import org.springframework.util.StringUtils;
 @Service
 @RequiredArgsConstructor
 public class TrackRegistry {
-    private final GravifonProperties properties;
+    private final LibraryProperties properties;
     private final TrackRepository trackRepository;
     private final LibraryScanCoordinator scanCoordinator;
     private final List<TagWriteBackHandler> writeBackHandlers;
@@ -50,7 +50,7 @@ public class TrackRegistry {
     public Path resolveTrackPath(String trackId) {
         Track track = getTrack(trackId);
         if (track instanceof FileTrack fileTrack) {
-            return properties.getMusicRoot().resolve(fileTrack.relPath()).normalize();
+            return properties.musicRoot().resolve(fileTrack.relPath()).normalize();
         }
         throw new EntityNotFoundException("Track path not found: " + trackId);
     }
@@ -72,7 +72,7 @@ public class TrackRegistry {
     @Transactional
     public Track markStreamUnreachable(String trackId, String errorKind, String message) {
         Track track = getTrack(trackId);
-        TrackState state = new TrackState(true, new TrackError(errorKind, message, Instant.now(), "STREAM_REFRESH"));
+        TrackState state = new TrackState(true, TrackError.streamRefreshFailure(errorKind, message, Instant.now()));
         return trackRepository.save(track.withState(state));
     }
 
@@ -95,11 +95,7 @@ public class TrackRegistry {
             throw new IllegalArgumentException("A failure report requires a non-blank message and kind");
         }
         Track track = getTrack(trackId);
-        TrackState state =
-                new TrackState(
-                        true,
-                        new TrackError(kind == null ? "CLIENT_ERROR" : kind, message, Instant.now(), "CLIENT")
-        );
+        TrackState state = new TrackState(true, TrackError.clientFailure(kind, message, Instant.now()));
         return trackRepository.save(track.withState(state));
     }
 

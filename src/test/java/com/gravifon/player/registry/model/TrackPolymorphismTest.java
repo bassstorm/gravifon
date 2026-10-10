@@ -2,6 +2,7 @@ package com.gravifon.player.registry.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -27,14 +28,13 @@ class TrackPolymorphismTest {
         assertThat(track.relPath()).isEqualTo("music/song.mp3");
         assertThat(track.format()).isEqualTo("mp3");
 
-        FileTrack updated =
-                track.withState(new TrackState(true, new TrackError("READ_ERROR", "Unreadable", Instant.now(), "SCAN")));
+        FileTrack updated = track.withState(new TrackState(true, TrackError.readFailure("Unreadable", Instant.now())));
         assertThat(updated.state().failing()).isTrue();
         assertThat(updated.metadata()).containsEntry("TITLE", List.of("Song"));
     }
 
     @Test
-    void streamTrackEvaluatesFreshnessAndWithers() {
+    void streamTrackEvaluatesRefreshNeedAndWithers() {
         Instant now = Instant.parse("2026-01-01T00:00:00Z");
         StreamTrack fresh = new StreamTrack(
                 "s1",
@@ -65,13 +65,18 @@ class TrackPolymorphismTest {
                         null
         );
 
-        assertThat(fresh.isStreamUrlFresh(now)).isTrue();
-        assertThat(expired.isStreamUrlFresh(now)).isFalse();
-        assertThat(noExpiry.isStreamUrlFresh(now)).isTrue();
+        assertThat(fresh.needsRefresh(now, Duration.ZERO)).isFalse();
+        assertThat(fresh.needsRefresh(now, Duration.ofSeconds(60))).isTrue();
+        assertThat(expired.needsRefresh(now, Duration.ZERO)).isTrue();
+        assertThat(noExpiry.needsRefresh(now, Duration.ofDays(1))).isFalse();
+
+        StreamTrack missingUrl =
+                new StreamTrack("s4", Map.of(), 200L, TrackState.healthy(), "https://source/4", null, null);
+        assertThat(missingUrl.needsRefresh(now, Duration.ZERO)).isTrue();
 
         StreamTrack refreshed = expired.withStream("https://stream/fresh", now.plusSeconds(300));
         assertThat(refreshed.streamUrl()).isEqualTo("https://stream/fresh");
-        assertThat(refreshed.isStreamUrlFresh(now)).isTrue();
+        assertThat(refreshed.needsRefresh(now, Duration.ZERO)).isFalse();
     }
 
     @Test

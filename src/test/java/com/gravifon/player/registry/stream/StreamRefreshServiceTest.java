@@ -1,159 +1,107 @@
 package com.gravifon.player.registry.stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.gravifon.player.config.GravifonProperties;
-import com.gravifon.player.playback.service.PlaybackService;
-import com.gravifon.player.playlist.service.PlaylistService;
+import com.gravifon.player.config.StreamRefreshProperties;
 import com.gravifon.player.registry.model.StreamTrack;
-import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackState;
-import com.gravifon.player.registry.repository.TrackRepository;
 import com.gravifon.player.registry.service.TrackRegistry;
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import org.awaitility.Awaitility;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 
 class StreamRefreshServiceTest {
     private static final Instant NOW = Instant.parse("2026-01-01T00:00:00Z");
-    private final StreamResolverRegistry resolverRegistry = mock(StreamResolverRegistry.class);
-    private final TrackRegistry trackRegistry = mock(TrackRegistry.class);
-    private final TrackRepository trackRepository = mock(TrackRepository.class);
-    private final PlaylistService playlistService = mock(PlaylistService.class);
-    private final PlaybackService playbackService = mock(PlaybackService.class);
-    private final StreamRefreshService service = new StreamRefreshService(
-            resolverRegistry,
-            trackRegistry,
-            trackRepository,
-            playlistService,
-            playbackService,
-            new GravifonProperties()
-    );
 
     @Test
-    void freshUrlBypassesResolver() throws IOException {
-        StreamTrack track = track("t1", Instant.parse("2026-01-01T00:01:00Z"));
+    void plansDueTracksAndRefreshesSequentially() throws Exception {
+        StreamRefreshProperties properties = properties();
+        RefreshPlanner planner = new RefreshPlanner();
+        StreamTrackRefresher refresher = mock(StreamTrackRefresher.class);
+        StreamRefreshService service = new StreamRefreshService(planner, refresher, properties);
+        StreamTrack later = track("later", NOW.plusSeconds(300));
+        StreamTrack earlier = track("earlier", NOW.plusSeconds(60));
+        StreamTrack notDue = track("not-due", NOW.plus(Duration.ofHours(2)));
+        when(refresher.ensureValid(earlier, properties.refreshAhead())).thenReturn(earlier);
+        when(refresher.ensureValid(later, properties.refreshAhead())).thenReturn(later);
 
-        assertEquals(track, service.ensureFresh(track, NOW));
-        verify(resolverRegistry, never()).resolverFor(any(Track.class));
+        service.refreshDue(List.of(later, notDue, earlier), NOW);
+
+        var order = org.mockito.Mockito.inOrder(refresher);
+        order.verify(refresher).ensureValid(earlier, properties.refreshAhead());
+        order.verify(refresher).ensureValid(later, properties.refreshAhead());
     }
 
     @Test
-    void expiredUrlRefreshesAndPersistsResolvedUrl() throws IOException {
-        StreamTrack track = track("t1", Instant.parse("2025-12-31T23:59:59Z"));
-        StreamResolver resolver = mock(StreamResolver.class);
-        StreamTrack refreshed = track("t1", Instant.parse("2026-01-01T00:01:00Z"));
-        when(resolverRegistry.resolverFor(track)).thenReturn(resolver);
-        when(resolver.refreshStream(track))
-            .thenReturn(new StreamResolver.ResolvedStream("https://fresh", refreshed.expiresAfter()));
-        when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(track));
-        when(trackRegistry.updateStream("t1", "https://fresh", refreshed.expiresAfter())).thenReturn(refreshed);
+    void oneFailedTrackDoesNotPreventRefreshingTheNext() throws Exception {
+        StreamRefreshProperties properties = properties();
+        StreamTrackRefresher refresher = mock(StreamTrackRefresher.class);
+        StreamRefreshService service = new StreamRefreshService(new RefreshPlanner(), refresher, properties);
+        StreamTrack failed = track("failed", NOW.minusSeconds(1));
+        StreamTrack next = track("next", NOW.plusSeconds(60));
+        when(refresher.ensureValid(failed, properties.refreshAhead())).thenThrow(new IOException("upstream down"));
+        when(refresher.ensureValid(next, properties.refreshAhead())).thenReturn(next);
 
-        assertEquals(refreshed, service.ensureFresh(track, NOW));
-        verify(trackRegistry).updateStream("t1", "https://fresh", refreshed.expiresAfter());
+        service.refreshDue(List.of(failed, next), NOW);
+
+        verify(refresher).ensureValid(failed, properties.refreshAhead());
+        verify(refresher).ensureValid(next, properties.refreshAhead());
     }
 
     @Test
-    void failedRefreshMarksTrackAndDoesNotUpdateUrl() {
-        StreamTrack track = track("t1", Instant.parse("2025-12-31T23:59:59Z"));
-        StreamResolver resolver = mock(StreamResolver.class);
-        when(resolverRegistry.resolverFor(track)).thenReturn(resolver);
-        when(resolver.refreshStream(track)).thenThrow(new IllegalStateException("upstream down"));
-        when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(track));
+    void refreshesStillValidUrlThatFallsInsideLookAheadWindow() throws Exception {
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            StreamRefreshProperties properties = properties();
+            Instant now = Instant.now();
+            StreamTrack nearlyExpired = track("t1", now.plus(Duration.ofMinutes(30)));
+            StreamTrack refreshed = new StreamTrack(
+                    "t1",
+                    Map.of(),
+                    null,
+                    TrackState.healthy(),
+                    nearlyExpired.sourceUrl(),
+                    "https://fresh",
+                    now.plus(Duration.ofHours(2))
+            );
+            StreamResolverRegistry resolvers = mock(StreamResolverRegistry.class);
+            TrackRegistry registry = mock(TrackRegistry.class);
+            StreamResolver resolver = mock(StreamResolver.class);
+            when(registry.findTrackById("t1")).thenReturn(Optional.of(nearlyExpired));
+            when(resolvers.resolverFor(nearlyExpired)).thenReturn(resolver);
+            when(resolver.refreshStream(nearlyExpired))
+                .thenReturn(new StreamResolver.ResolvedStream("https://fresh", refreshed.expiresAfter()));
+            when(registry.updateStream("t1", "https://fresh", refreshed.expiresAfter())).thenReturn(refreshed);
+            StreamTrackRefresher refresher = new StreamTrackRefresher(resolvers, registry, properties, executor);
+            StreamRefreshService service = new StreamRefreshService(new RefreshPlanner(), refresher, properties);
 
-        assertThrows(IOException.class, () -> service.ensureFresh(track, NOW));
-        verify(trackRegistry).markStreamUnreachable("t1", "STREAM_UNREACHABLE", "upstream down");
-        verify(trackRegistry, never()).updateStream(any(), any(), any());
-    }
+            service.refreshDue(List.of(nearlyExpired), now);
 
-    @Test
-    void failedRefreshUsesNonBlankErrorWhenCauseMessageIsBlank() {
-        StreamTrack track = track("t1", Instant.parse("2025-12-31T23:59:59Z"));
-        StreamResolver resolver = mock(StreamResolver.class);
-        String fallbackMessage = new IllegalStateException(" ").toString();
-        when(resolverRegistry.resolverFor(track)).thenReturn(resolver);
-        when(resolver.refreshStream(track)).thenThrow(new IllegalStateException(" "));
-        when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(track));
-
-        assertThrows(IOException.class, () -> service.ensureFresh(track, NOW));
-
-        verify(trackRegistry).markStreamUnreachable("t1", "STREAM_UNREACHABLE", fallbackMessage);
-    }
-
-    @Test
-    void slowRefreshTimesOutAndMarksTrackWithoutUpdatingUrl() throws Exception {
-        StreamTrack track = track("t1", Instant.parse("2025-12-31T23:59:59Z"));
-        StreamResolver resolver = mock(StreamResolver.class);
-        GravifonProperties properties = new GravifonProperties();
-        properties.getStreams().setRefreshTimeout(java.time.Duration.ofMillis(10));
-        properties.getStreams().setRefreshMaxAttempts(1);
-        StreamRefreshService shortTimeoutService = new StreamRefreshService(
-                resolverRegistry,
-                trackRegistry,
-                trackRepository,
-                playlistService,
-                playbackService,
-                properties
-        );
-        when(resolverRegistry.resolverFor(track)).thenReturn(resolver);
-        when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(track));
-        when(resolver.refreshStream(track)).thenAnswer(invocation -> {
-            Thread.sleep(100);
-            return new StreamResolver.ResolvedStream("https://late", Instant.parse("2026-01-01T00:01:00Z"));
-        });
-
-        assertThrows(IOException.class, () -> shortTimeoutService.ensureFresh(track, NOW));
-        verify(trackRegistry).markStreamUnreachable("t1", "STREAM_REFRESH_TIMEOUT", "Stream refresh timed out");
-        verify(trackRegistry, never()).updateStream(any(), any(), any());
-    }
-
-    @Test
-    void concurrentRefreshSharesOneInFlightRefresh() throws Exception {
-        StreamTrack track = track("t1", Instant.parse("2025-12-31T23:59:59Z"));
-        StreamResolver resolver = mock(StreamResolver.class);
-        CountDownLatch entered = new CountDownLatch(1);
-        CountDownLatch release = new CountDownLatch(1);
-        when(resolverRegistry.resolverFor(track)).thenReturn(resolver);
-        when(trackRegistry.findTrackById("t1")).thenReturn(Optional.of(track));
-        when(resolver.refreshStream(track)).thenAnswer(invocation -> {
-            entered.countDown();
-            release.await(1, TimeUnit.SECONDS);
-            return new StreamResolver.ResolvedStream("https://fresh", Instant.parse("2026-01-01T00:01:00Z"));
-        });
-
-        CompletableFuture<StreamTrack> first = CompletableFuture.supplyAsync(() -> refresh(track));
-        Awaitility
-            .await()
-            .atMost(1, TimeUnit.SECONDS)
-            .untilAsserted(() -> assertEquals(0, entered.getCount()));
-        CompletableFuture<StreamTrack> second = CompletableFuture.supplyAsync(() -> refresh(track));
-        release.countDown();
-        Awaitility.await().atMost(2, TimeUnit.SECONDS).until(first::isDone);
-        Awaitility.await().atMost(2, TimeUnit.SECONDS).until(second::isDone);
-        org.mockito.Mockito.verify(resolver, org.mockito.Mockito.times(1)).refreshStream(track);
-    }
-
-    private StreamTrack refresh(StreamTrack track) {
-        try {
-            return service.ensureFresh(track);
-        } catch (IOException exception) {
-            throw new RuntimeException(exception);
+            verify(resolver).refreshStream(nearlyExpired);
+            verify(registry).updateStream("t1", "https://fresh", refreshed.expiresAfter());
         }
     }
 
+    private StreamRefreshProperties properties() {
+        return new StreamRefreshProperties(Duration.ofHours(1), 10, Duration.ofMinutes(1), Duration.ofSeconds(5), 2);
+    }
+
     private StreamTrack track(String id, Instant expiresAfter) {
-        return new StreamTrack(id, Map.of(), null, TrackState.healthy(), "https://source", "https://old", expiresAfter);
+        return new StreamTrack(
+                id,
+                Map.of(),
+                null,
+                TrackState.healthy(),
+                "https://source/" + id,
+                "https://stream",
+                expiresAfter
+        );
     }
 }

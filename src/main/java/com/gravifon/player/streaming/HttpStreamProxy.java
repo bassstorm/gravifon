@@ -1,34 +1,35 @@
 package com.gravifon.player.streaming;
 
+import com.gravifon.player.config.StreamRefreshProperties;
 import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.model.Track;
-import com.gravifon.player.registry.stream.StreamRefreshService;
+import com.gravifon.player.registry.stream.StreamTrackRefresher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.springframework.web.client.RestClient;
 
 @Component
 public class HttpStreamProxy implements StreamProxy {
-    private final HttpClient client;
-    private final StreamRefreshService refreshService;
+    private final RestClient client;
+    private final StreamTrackRefresher refresher;
+    private final StreamRefreshProperties refreshProperties;
 
-    @Autowired
-    public HttpStreamProxy(StreamRefreshService refreshService) {
-        this(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build(), refreshService);
-    }
-
-    HttpStreamProxy(HttpClient client, StreamRefreshService refreshService) {
+    public HttpStreamProxy(
+            @Qualifier("httpStreamProxyRestClient") RestClient client,
+            StreamTrackRefresher refresher,
+            StreamRefreshProperties refreshProperties
+    ) {
         this.client = client;
-        this.refreshService = refreshService;
+        this.refresher = refresher;
+        this.refreshProperties = refreshProperties;
     }
 
     @Override
@@ -36,33 +37,34 @@ public class HttpStreamProxy implements StreamProxy {
         if (!(track instanceof StreamTrack streamTrack)) {
             throw new IllegalArgumentException("Cannot proxy non-stream track: " + track.id());
         }
-        streamTrack = refreshService.ensureFresh(streamTrack);
-        HttpRequest.Builder builder =
-                HttpRequest.newBuilder(URI.create(streamTrack.streamUrl())).GET().timeout(Duration.ofSeconds(15));
+        streamTrack = refresher.ensureValid(streamTrack, refreshProperties.refreshMinValidity());
         String range = request.getHeader("Range");
-        if (StringUtils.hasText(range)) {
-            builder.header("Range", range);
-        }
-        try {
-            HttpResponse<InputStream> upstream = client.send(builder.build(), HttpResponse.BodyHandlers.ofInputStream());
-            response.setStatus(upstream.statusCode());
-            copyHeader(upstream, response, "Content-Type");
-            copyHeader(upstream, response, "Content-Length");
-            copyHeader(upstream, response, "Content-Range");
-            copyHeader(upstream, response, "Accept-Ranges");
-            try (var body = upstream.body()) {
-                body.transferTo(response.getOutputStream());
-            }
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Stream proxy interrupted", exception);
-        }
+
+        client
+            .get()
+            .uri(URI.create(streamTrack.streamUrl()))
+            .headers(headers -> {
+                if (StringUtils.hasText(range)) {
+                    headers.set("Range", range);
+                }
+            })
+            .exchange((clientRequest, clientResponse) -> {
+                response.setStatus(clientResponse.getStatusCode().value());
+                copyHeader(clientResponse, response, "Content-Type");
+                copyHeader(clientResponse, response, "Content-Length");
+                copyHeader(clientResponse, response, "Content-Range");
+                copyHeader(clientResponse, response, "Accept-Ranges");
+                try (InputStream body = clientResponse.getBody()) {
+                    body.transferTo(response.getOutputStream());
+                }
+                return null;
+            });
     }
 
-    private void copyHeader(HttpResponse<?> upstream, HttpServletResponse response, String name) {
-        upstream
-            .headers()
-            .firstValue(name)
-            .ifPresent(value -> response.setHeader(name, value));
+    private void copyHeader(ClientHttpResponse upstream, HttpServletResponse response, String name) {
+        List<String> values = upstream.getHeaders().get(name);
+        if (values != null && !values.isEmpty()) {
+            response.setHeader(name, values.getFirst());
+        }
     }
 }

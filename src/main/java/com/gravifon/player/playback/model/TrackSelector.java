@@ -9,4 +9,6 @@ public interface TrackSelector {
     Optional<String> selectInitialTrack(List<String> trackIds);
 
     Optional<String> selectNextTrack(List<String> trackIds, String currentTrackId);
+
+    List<String> upcoming(List<String> trackIds, String currentTrackId, int limit);
 }

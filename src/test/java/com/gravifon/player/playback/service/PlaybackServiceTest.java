@@ -89,6 +89,27 @@ class PlaybackServiceTest {
     }
 
     @Test
+    void upcomingTracksUsesSessionModeAndLoadsSelectedTracksInOneBatch() {
+        Playlist playlist = new Playlist("favorites", "Favorites", List.of("t1", "t2", "t3"));
+        Track second = track("t2", 100L);
+        Track third = track("t3", 120L);
+        when(playlistService.select("favorites")).thenReturn(playlist);
+        when(playlistService.getActive()).thenReturn(playlist);
+        when(trackRepository.findAllById(List.of("t1", "t2", "t3"))).thenReturn(List.of(track("t1", 90L), second, third)
+        );
+
+        playbackService.selectPlaylist("favorites");
+        assertThat(playbackService.upcomingTracks(3)).containsExactly(track("t1", 90L), second, third);
+
+        verify(trackRepository).findAllById(List.of("t1", "t2", "t3"));
+    }
+
+    @Test
+    void upcomingTracksReturnsEmptyWhenThereIsNoCurrentTrack() {
+        assertThat(playbackService.upcomingTracks(10)).isEmpty();
+    }
+
+    @Test
     void sequentialMode_advancesAndWrapsByOrder() {
         stubDefaultActivePlaylist();
         playbackService.setTransportState(TransportState.PLAYING);

@@ -29,7 +29,8 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK, properties = "gravifon.startup-scan-enabled=false")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK, properties = "gravifon.library.startup-scan-"
+        + "enabled=false")
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
@@ -39,7 +40,7 @@ class GravifonIntegrationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("gravifon.music-root", () -> musicRoot.toString());
+        registry.add("gravifon.library.music-root", () -> musicRoot.toString());
     }
 
     @BeforeAll

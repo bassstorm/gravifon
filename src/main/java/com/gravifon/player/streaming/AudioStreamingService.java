@@ -8,11 +8,16 @@ import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.List;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.ResourceRegion;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpRange;
 import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
@@ -20,6 +25,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @RequiredArgsConstructor
 public class AudioStreamingService {
+    private static final MediaType FLAC_MEDIA_TYPE = MediaType.parseMediaType("audio/flac");
     private final PlaybackService playbackService;
 
     public void streamFile(String trackId, Path trackPath, HttpServletRequest request, HttpServletResponse response)
@@ -30,12 +36,14 @@ public class AudioStreamingService {
         }
 
         String rangeHeader = request.getHeader(HttpHeaders.RANGE);
-        ByteRange range = StringUtils.hasText(rangeHeader) ? parseRange(rangeHeader, fileLength) : null;
+        ResourceRegion region = StringUtils.hasText(rangeHeader)
+                ? parseSingleRegion(rangeHeader, new FileSystemResource(trackPath), fileLength)
+                : null;
 
         response.setHeader(HttpHeaders.ACCEPT_RANGES, "bytes");
         response.setContentType(resolveContentType(trackPath).toString());
 
-        if (range == null) {
+        if (region == null) {
             response.setContentLengthLong(fileLength);
             try (FileChannel channel = FileChannel.open(trackPath, StandardOpenOption.READ)) {
                 channel.transferTo(0, fileLength, Channels.newChannel(response.getOutputStream()));
@@ -44,80 +52,53 @@ public class AudioStreamingService {
             return;
         }
 
-        long regionLength = range.end() - range.start() + 1;
+        long start = region.getPosition();
+        long count = region.getCount();
+        long end = start + count - 1;
+
         response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
-        response.setHeader(
-                HttpHeaders.CONTENT_RANGE,
-                "bytes %d-%d/%d".formatted(range.start(), range.end(), fileLength)
-        );
-        response.setContentLengthLong(regionLength);
+        response.setHeader(HttpHeaders.CONTENT_RANGE, "bytes %d-%d/%d".formatted(start, end, fileLength));
+        response.setContentLengthLong(count);
 
         try (FileChannel channel = FileChannel.open(trackPath, StandardOpenOption.READ)) {
-            channel.transferTo(range.start(), regionLength, Channels.newChannel(response.getOutputStream()));
+            channel.transferTo(start, count, Channels.newChannel(response.getOutputStream()));
         }
-        playbackService.observeStream(trackId, range.end(), fileLength);
+        playbackService.observeStream(trackId, end, fileLength);
     }
 
-    public ByteRange parseRange(String rawRange, long fileLength) {
-        if (!rawRange.startsWith("bytes=")) {
-            throw rangeNotSatisfiable(fileLength);
-        }
-
-        String value = rawRange.substring("bytes=".length()).trim();
-        int dash = value.indexOf('-');
-        if (dash < 0) {
-            throw rangeNotSatisfiable(fileLength);
-        }
-
-        String startPart = value.substring(0, dash).trim();
-        String endPart = value.substring(dash + 1).trim();
-
+    public ResourceRegion parseSingleRegion(String rawRange, Resource resource, long fileLength) {
+        List<HttpRange> ranges;
         try {
-            long start;
-            long end;
+            ranges = HttpRange.parseRanges(rawRange);
+        } catch (IllegalArgumentException ex) {
+            throw rangeNotSatisfiable(fileLength);
+        }
 
-            if (startPart.isEmpty()) {
-                long suffixLength = Long.parseLong(endPart);
-                if (suffixLength <= 0) {
-                    throw rangeNotSatisfiable(fileLength);
-                }
-                start = Math.max(0, fileLength - suffixLength);
-                end = fileLength - 1;
-            } else {
-                start = Long.parseLong(startPart);
-                end = endPart.isEmpty() ? fileLength - 1 : Long.parseLong(endPart);
-            }
+        if (ranges.size() != 1) {
+            throw rangeNotSatisfiable(fileLength);
+        }
 
-            if (start < 0 || start >= fileLength || end < start) {
+        HttpRange range = ranges.getFirst();
+        try {
+            ResourceRegion region = range.toResourceRegion(resource);
+            if (region.getPosition() >= fileLength || region.getCount() <= 0) {
                 throw rangeNotSatisfiable(fileLength);
             }
-
-            return new ByteRange(start, Math.min(end, fileLength - 1));
-        } catch (NumberFormatException ex) {
+            return region;
+        } catch (IllegalArgumentException ex) {
             throw rangeNotSatisfiable(fileLength);
         }
     }
 
     private ResponseStatusException rangeNotSatisfiable(long fileLength) {
-        return new ResponseStatusException(
-                HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE,
-                "Range not satisfiable. Expected bytes within resource length %d".formatted(fileLength)
-        );
+        return new RangeNotSatisfiableException(fileLength);
     }
 
     private MediaType resolveContentType(Path path) {
-        String filename = path.getFileName().toString().toLowerCase(Locale.ROOT);
-        if (filename.endsWith(".mp3")) {
-            return MediaType.valueOf("audio/mpeg");
+        String filename = path.getFileName().toString();
+        if (filename.toLowerCase(Locale.ROOT).endsWith(".flac")) {
+            return FLAC_MEDIA_TYPE;
         }
-        if (filename.endsWith(".flac")) {
-            return MediaType.valueOf("audio/flac");
-        }
-        if (filename.endsWith(".ogg")) {
-            return MediaType.valueOf("audio/ogg");
-        }
-        return MediaType.APPLICATION_OCTET_STREAM;
+        return MediaTypeFactory.getMediaType(filename).orElse(MediaType.APPLICATION_OCTET_STREAM);
     }
-
-    public record ByteRange(long start, long end) {}
 }

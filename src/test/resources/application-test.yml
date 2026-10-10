@@ -7,4 +7,5 @@ spring:
 
 gravifon:
   config-dir: ${GRAVIFON_CONFIG_DIR:${java.io.tmpdir}/gravifon-test}
-  startup-scan-enabled: false
+  library:
+    startup-scan-enabled: false

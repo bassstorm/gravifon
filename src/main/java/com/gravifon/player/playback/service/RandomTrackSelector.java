@@ -24,6 +24,13 @@ public class RandomTrackSelector implements TrackSelector {
         return selectRandom(trackIds);
     }
 
+    @Override
+    public List<String> upcoming(List<String> trackIds, String currentTrackId, int limit) {
+        return limit > 0 && currentTrackId != null && trackIds.contains(currentTrackId)
+                ? List.of(currentTrackId)
+                : List.of();
+    }
+
     private Optional<String> selectRandom(List<String> trackIds) {
         if (trackIds.isEmpty()) {
             return Optional.empty();

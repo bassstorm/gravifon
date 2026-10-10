@@ -6,11 +6,15 @@ Define the unified, persistent, metadata-bearing registry for all tracks — fil
 ## Requirements
 
 ### Requirement: Registry scanner reconciles supported music files
-The system SHALL recursively scan the mounted `/music` directory at startup and reconcile discovered audio files with extensions `.flac`, `.mp3`, and `.ogg` against the persistent track registry, rather than rebuilding the registry from scratch.
+The system SHALL recursively scan the mounted `/music` directory and reconcile discovered audio files with extensions `.flac`, `.mp3`, and `.ogg` against the persistent track registry, rather than rebuilding the registry from scratch. The startup scan MUST run as a background reconciliation that does not block service startup, with the service handling requests against the persisted registry snapshot while the scan is in progress.
 
 #### Scenario: Startup scan discovers nested files
 - **WHEN** the application starts with supported files in nested subdirectories under `/music`
-- **THEN** every discovered supported file is present in the registry as a file-backed track
+- **THEN** once the background startup scan completes, every discovered supported file is present in the registry as a file-backed track
+
+#### Scenario: Service is available before the startup scan completes
+- **WHEN** the application has started but the background startup scan is still in progress
+- **THEN** requests are served against the persisted registry snapshot, and tracks not yet reconciled may be reported as missing
 
 #### Scenario: Unsupported file types are ignored
 - **WHEN** the scanner encounters files that are not `.flac`, `.mp3`, or `.ogg`

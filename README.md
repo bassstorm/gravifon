@@ -74,6 +74,19 @@ directory (for example, `~/Library`) and `GRAVIFON_CONFIG_PATH` to a host config
 directory when persistence outside Docker is required. Both variables also accept
 named volumes. The application paths are `/music` and `/config`, configurable with
 `GRAVIFON_LIBRARY_DIR` and `GRAVIFON_CONFIG_DIR` when running outside Compose.
+Proactive stream refresh runs every ten minutes by default; set
+`GRAVIFON_STREAM_REFRESH_CRON` to change the schedule, or to `-` to disable
+proactive refresh. Request-time stream URL refresh remains enabled.
+
+## Health and probes
+
+The application exposes these Actuator endpoints:
+
+- `GET /actuator/health` reports aggregate health, including the database, music-library mount, and the latest library-scan outcome. A scan failure is reported as detail and does not by itself mark the service unhealthy.
+- `GET /actuator/health/readiness` reports whether the database and readable music-library mount are available. It does not wait for or depend on a library scan.
+- `GET /actuator/health/liveness` reports application-process health only; recoverable database, mount, or scan failures do not make the process unlive.
+
+Compose polls `/actuator/health` for container health. This is an observability signal and does not itself restart the container.
 
 For a host-backed persistence check:
 

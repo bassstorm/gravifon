@@ -114,7 +114,7 @@ public class JpaTrackRepository implements TrackRepository {
                 .add(value.value()));
         TrackError error = entity.errorKind() == null
                 ? null
-                : new TrackError(
+                : TrackError.rehydrate(
                         entity.errorKind(),
                         entity.errorMessage(),
                         instant(entity.errorAt()),
@@ -163,6 +163,6 @@ public class JpaTrackRepository implements TrackRepository {
     }
 
     private String errorReporter(Track track) {
-        return track.state().lastError() == null ? null : track.state().lastError().reportedBy();
+        return track.state().lastError() == null ? null : track.state().lastError().reportedBy().name();
     }
 }

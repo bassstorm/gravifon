@@ -1,6 +1,9 @@
 spring:
   application:
     name: gravifon
+  threads:
+    virtual:
+      enabled: true
   datasource:
     url: jdbc:h2:file:${gravifon.config-dir}/gravifon;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
@@ -18,15 +21,34 @@ logging:
     format:
       console: logstash
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: db,musicLibrary
+        liveness:
+          include: livenessState
+
 gravifon:
-  music-root: ${GRAVIFON_LIBRARY_DIR:/music}
+  library:
+    music-root: ${GRAVIFON_LIBRARY_DIR:/music}
+    startup-scan-enabled: ${GRAVIFON_STARTUP_SCAN_ENABLED:true}
   config-dir: ${GRAVIFON_CONFIG_DIR:/config}
-  startup-scan-enabled: ${GRAVIFON_STARTUP_SCAN_ENABLED:true}
   streams:
-    refresh-enabled: ${GRAVIFON_STREAM_REFRESH_ENABLED:true}
     refresh-ahead: ${GRAVIFON_STREAM_REFRESH_AHEAD:PT1H}
-    refresh-interval: ${GRAVIFON_STREAM_REFRESH_INTERVAL:PT10M}
-    refresh-scope: ${GRAVIFON_STREAM_REFRESH_SCOPE:ACTIVE_PLAYLIST_PLUS_NEXT}
+    refresh-cron: ${GRAVIFON_STREAM_REFRESH_CRON:0 */10 * * * *}
+    refresh-upcoming-count: ${GRAVIFON_STREAM_REFRESH_UPCOMING_COUNT:10}
+    refresh-min-validity: ${GRAVIFON_STREAM_REFRESH_MIN_VALIDITY:PT1M}
     refresh-timeout: ${GRAVIFON_STREAM_REFRESH_TIMEOUT:PT5S}
     refresh-max-attempts: ${GRAVIFON_STREAM_REFRESH_MAX_ATTEMPTS:2}
-
+    proxy-connect-timeout: ${GRAVIFON_STREAM_PROXY_CONNECT_TIMEOUT:PT5S}
+    proxy-read-timeout: ${GRAVIFON_STREAM_PROXY_READ_TIMEOUT:PT15S}

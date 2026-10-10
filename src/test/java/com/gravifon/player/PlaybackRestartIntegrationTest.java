@@ -28,10 +28,9 @@ class PlaybackRestartIntegrationTest {
         Path musicRoot = Files.createDirectories(tempDir.resolve("music"));
         Path configDir = Files.createDirectories(tempDir.resolve("config"));
         String[] properties = {
-                "gravifon.music-root=" + musicRoot,
+                "gravifon.library.music-root=" + musicRoot,
                 "gravifon.config-dir=" + configDir,
-                "gravifon.startup-scan-enabled=false",
-                "gravifon.streams.refresh-enabled=false",
+                "gravifon.library.startup-scan-enabled=false",
                 "spring.main.web-application-type=none"
         };
 

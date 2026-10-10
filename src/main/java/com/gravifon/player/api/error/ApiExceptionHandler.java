@@ -104,7 +104,18 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleResponseStatus(ResponseStatusException ex, HttpServletRequest request) {
         HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
         String message = ex.getReason() != null ? ex.getReason() : status.getReasonPhrase();
-        return buildResponse(status, message, request);
+        HttpHeaders headers = new HttpHeaders();
+        headers.addAll(ex.getHeaders());
+        String correlationId = (String) request.getAttribute(CorrelationIdFilter.CORRELATION_ID_REQUEST_ATTRIBUTE);
+        ApiErrorResponse body = new ApiErrorResponse(
+                Instant.now(),
+                status.value(),
+                status.getReasonPhrase(),
+                message,
+                request.getRequestURI(),
+                correlationId
+        );
+        return ResponseEntity.status(status).headers(headers).body(body);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

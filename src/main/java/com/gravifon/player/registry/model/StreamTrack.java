@@ -1,5 +1,6 @@
 package com.gravifon.player.registry.model;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -50,8 +51,13 @@ public record StreamTrack(
         return TrackKind.STREAM;
     }
 
-    public boolean isStreamUrlFresh(Instant now) {
-        return streamUrl != null && (expiresAfter == null || expiresAfter.isAfter(now));
+    public boolean needsRefresh(Instant now, Duration margin) {
+        Objects.requireNonNull(now, "now");
+        Objects.requireNonNull(margin, "margin");
+        if (margin.isNegative()) {
+            throw new IllegalArgumentException("Refresh margin must not be negative");
+        }
+        return streamUrl == null || expiresAfter != null && !expiresAfter.isAfter(now.plus(margin));
     }
 
     public StreamTrack withStream(String newStreamUrl, Instant newExpiresAfter) {

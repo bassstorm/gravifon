@@ -25,6 +25,19 @@ class TrackSelectorTest {
     }
 
     @Test
+    void sequentialUpcomingSelectsCurrentThenSuccessorsAndWrapsWithoutRepeats() {
+        SequentialTrackSelector selector = new SequentialTrackSelector();
+        List<String> tracks = List.of("t1", "t2", "t3");
+
+        assertThat(selector.upcoming(tracks, "t3", 2)).containsExactly("t3", "t1");
+        assertThat(selector.upcoming(tracks, "t2", 10)).containsExactly("t2", "t3", "t1");
+        assertThat(selector.upcoming(List.of(), "t1", 1)).isEmpty();
+        assertThat(selector.upcoming(tracks, "unknown", 2)).isEmpty();
+        assertThat(selector.upcoming(tracks, "t1", 0)).isEmpty();
+        assertThat(selector.upcoming(List.of("t1", "t1", "t2"), "t1", 3)).containsExactly("t1", "t2");
+    }
+
+    @Test
     void randomTrackSelector_selectsElementFromTracks() {
         RandomTrackSelector selector = new RandomTrackSelector();
         List<String> tracks = List.of("t1", "t2", "t3");
@@ -40,6 +53,9 @@ class TrackSelectorTest {
         Optional<String> next = selector.selectNextTrack(tracks, "t1");
         assertThat(next).isPresent();
         assertThat(tracks).contains(next.get());
+
+        assertThat(selector.upcoming(tracks, "t2", 10)).containsExactly("t2");
+        assertThat(selector.upcoming(tracks, "unknown", 10)).isEmpty();
     }
 
     @Test

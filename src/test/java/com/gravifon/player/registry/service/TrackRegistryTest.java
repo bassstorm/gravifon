@@ -6,7 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.gravifon.player.config.GravifonProperties;
+import com.gravifon.player.config.LibraryProperties;
 import com.gravifon.player.error.EntityNotFoundException;
 import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.StreamTrack;
@@ -23,12 +23,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class TrackRegistryTest {
+    private static final LibraryProperties DEFAULT_PROPERTIES = new LibraryProperties(Path.of("/music"), true);
+
     @Test
     void delegatesRefreshToScanCoordinator() {
-        GravifonProperties properties = new GravifonProperties();
         TrackRepository repository = mock(TrackRepository.class);
         LibraryScanCoordinator coordinator = mock(LibraryScanCoordinator.class);
-        TrackRegistry registry = new TrackRegistry(properties, repository, coordinator, List.of());
+        TrackRegistry registry = new TrackRegistry(DEFAULT_PROPERTIES, repository, coordinator, List.of());
 
         registry.refresh();
 
@@ -37,8 +38,7 @@ class TrackRegistryTest {
 
     @Test
     void resolveTrackPath_returnsPathForFileTrack(@TempDir Path musicRoot) {
-        GravifonProperties properties = new GravifonProperties();
-        properties.setMusicRoot(musicRoot);
+        LibraryProperties properties = new LibraryProperties(musicRoot, true);
         TrackRepository repository = mock(TrackRepository.class);
         LibraryScanCoordinator coordinator = mock(LibraryScanCoordinator.class);
         Track track = new FileTrack("t1", Map.of(), 100L, TrackState.healthy(), "song.mp3", "mp3");
@@ -55,7 +55,7 @@ class TrackRegistryTest {
         LibraryScanCoordinator coordinator = mock(LibraryScanCoordinator.class);
         Track track = new FileTrack("t1", Map.of(), 100L, TrackState.healthy(), "song.mp3", "mp3");
         when(repository.findById("t1")).thenReturn(Optional.of(track));
-        TrackRegistry registry = new TrackRegistry(new GravifonProperties(), repository, coordinator, List.of());
+        TrackRegistry registry = new TrackRegistry(DEFAULT_PROPERTIES, repository, coordinator, List.of());
 
         assertThat(registry.getTrack("t1")).isEqualTo(track);
         assertThatThrownBy(() -> registry.getTrack("missing")).isInstanceOf(EntityNotFoundException.class);
@@ -68,7 +68,7 @@ class TrackRegistryTest {
         Track streamTrack =
                 new StreamTrack("t1", Map.of(), null, TrackState.healthy(), "https://example.com", null, null);
         when(repository.findById("t1")).thenReturn(Optional.of(streamTrack));
-        TrackRegistry registry = new TrackRegistry(new GravifonProperties(), repository, coordinator, List.of());
+        TrackRegistry registry = new TrackRegistry(DEFAULT_PROPERTIES, repository, coordinator, List.of());
 
         assertThatThrownBy(() -> registry.resolveTrackPath("t1"))
             .isInstanceOf(EntityNotFoundException.class)
@@ -79,7 +79,7 @@ class TrackRegistryTest {
     void registryMutationsAndPathResolution_throwWhenTrackIsMissing() {
         TrackRepository repository = mock(TrackRepository.class);
         LibraryScanCoordinator coordinator = mock(LibraryScanCoordinator.class);
-        TrackRegistry registry = new TrackRegistry(new GravifonProperties(), repository, coordinator, List.of());
+        TrackRegistry registry = new TrackRegistry(DEFAULT_PROPERTIES, repository, coordinator, List.of());
 
         assertThatThrownBy(() -> registry.updateMetadata("missing", Map.of())).isInstanceOf(
                 EntityNotFoundException.class
@@ -99,7 +99,7 @@ class TrackRegistryTest {
         when(repository.findById("t1")).thenReturn(Optional.of(track));
         when(repository.save(org.mockito.ArgumentMatchers.any(Track.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
-        TrackRegistry registry = new TrackRegistry(new GravifonProperties(), repository, coordinator, List.of());
+        TrackRegistry registry = new TrackRegistry(DEFAULT_PROPERTIES, repository, coordinator, List.of());
 
         assertThat(registry.reportFailure("t1", "UPSTREAM", "Unavailable").state().failing()).isTrue();
         assertThat(registry.clearError("t1").state()).isEqualTo(TrackState.healthy());
@@ -114,7 +114,7 @@ class TrackRegistryTest {
         LibraryScanCoordinator coordinator = mock(LibraryScanCoordinator.class);
         Track track = new FileTrack("t1", Map.of(), 100L, TrackState.healthy(), "song.mp3", "mp3");
         when(repository.findById("t1")).thenReturn(Optional.of(track));
-        TrackRegistry registry = new TrackRegistry(new GravifonProperties(), repository, coordinator, List.of());
+        TrackRegistry registry = new TrackRegistry(DEFAULT_PROPERTIES, repository, coordinator, List.of());
 
         assertThatThrownBy(() -> registry.updateMetadata("t1", Map.of("TITLE", java.util.Arrays.asList("valid", null))))
             .isInstanceOf(IllegalArgumentException.class)

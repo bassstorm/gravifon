@@ -17,6 +17,7 @@ import com.gravifon.player.observability.CorrelationIdFilter;
 import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackError;
+import com.gravifon.player.registry.model.TrackErrorReporter;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.service.TrackRegistry;
 import java.time.Instant;
@@ -145,7 +146,10 @@ class TrackControllerWebMvcTest {
                 "track-1",
                 Map.of(),
                 123L,
-                new TrackState(true, new TrackError("UPSTREAM", "Unavailable", Instant.EPOCH, "CLIENT")),
+                new TrackState(
+                        true,
+                        new TrackError("UPSTREAM", "Unavailable", Instant.EPOCH, TrackErrorReporter.CLIENT)
+                ),
                 "a.mp3",
                 "mp3"
         );

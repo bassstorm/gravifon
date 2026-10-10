@@ -10,6 +10,13 @@ services:
     environment:
       GRAVIFON_LIBRARY_DIR: /music
       GRAVIFON_CONFIG_DIR: /config
+      GRAVIFON_STREAM_REFRESH_CRON:
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
     volumes:
       - ${GRAVIFON_LIBRARY_PATH:-gravifon-library}:/music:ro
       - ${GRAVIFON_CONFIG_PATH:-gravifon-config}:/config

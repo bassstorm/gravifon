@@ -16,6 +16,9 @@ Prefer small, composable services and pure transformation methods over large mul
 - Declare `@Slf4j` on classes that log; do not write manual `LoggerFactory.getLogger(...)` declarations
 - Use `@MockitoBean` in Spring test slices, not the deprecated `@MockBean`
 - Coverage gate: ≥ 80% line coverage on business logic, enforced via JaCoCo in `mvn verify`
+- Lifecycle conventions: avoid `@PostConstruct` for blocking I/O, proxy-dependent work, or startup coordination. Use ordered `ApplicationRunner` beans for deterministic pre-ready setup and `@EventListener(ApplicationReadyEvent.class)` (paired with `@Async` where non-blocking) for post-startup tasks.
+- Stream refresh is tracks-only: playback selects the bounded upcoming track list; the pure refresh planner selects due stream URLs; the refresher owns single-flight retry, timeout, and failure policy on the managed virtual-thread executor. Request-time refresh uses the configured minimum validity, while scheduled refresh uses the look-ahead margin.
+- Health readiness contains only the database and readable music-library mount. Liveness is process-only; scan outcomes remain observable health detail and must not degrade aggregate or readiness status.
 
 ### Persistence
 

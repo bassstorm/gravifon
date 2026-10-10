@@ -1,13 +1,12 @@
 package com.gravifon.player.registry.scan;
 
-import com.gravifon.player.config.GravifonProperties;
+import com.gravifon.player.config.LibraryProperties;
 import com.gravifon.player.registry.identity.TrackIdentity;
 import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackError;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.repository.TrackRepository;
-import jakarta.annotation.PostConstruct;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
@@ -23,22 +22,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class LibraryScanCoordinator {
-    private final GravifonProperties properties;
+    private final LibraryProperties properties;
     private final LibraryScanner scanner;
     private final TrackRepository trackRepository;
     private final ReferencedTrackIdsPort referencedTrackIdsPort;
     private final ScanReconciler scanReconciler;
 
-    @PostConstruct
-    public void scanOnStartup() {
-        if (properties.isStartupScanEnabled()) {
-            scan();
-        }
-    }
-
     @Transactional
     public synchronized void scan() {
-        Path root = properties.getMusicRoot().toAbsolutePath().normalize();
+        Path root = properties.musicRoot().toAbsolutePath().normalize();
         List<Track> existing = trackRepository.findAll();
         Set<String> referenced = referencedTrackIdsPort.getReferencedTrackIds();
         for (ScanReconciler.Decision decision : scanReconciler.reconcile(existing, scanner.scan(root), referenced)) {
@@ -49,15 +41,7 @@ public class LibraryScanCoordinator {
                     .ifPresent(track -> {
                         String missingPath = track instanceof FileTrack fileTrack ? fileTrack.relPath() : track.id();
                         trackRepository.save(track.withState(
-                                new TrackState(
-                                        true,
-                                        new TrackError(
-                                                "SOURCE_MISSING",
-                                                "File is missing: " + missingPath,
-                                                Instant.now(),
-                                                "SCAN"
-                                        )
-                                )
+                                new TrackState(true, TrackError.sourceMissing(missingPath, Instant.now()))
                         ));
                     });
                 case REMOVE -> trackRepository.deleteById(decision.trackId());
@@ -69,15 +53,7 @@ public class LibraryScanCoordinator {
         var file = decision.file();
         TrackState state = file.readable()
                 ? TrackState.healthy()
-                : new TrackState(
-                        true,
-                        new TrackError(
-                                "READ_ERROR",
-                                "Unable to read file: " + file.relativePath(),
-                                Instant.now(),
-                                "SCAN"
-                        )
-        );
+                : new TrackState(true, TrackError.readFailure(file.relativePath(), Instant.now()));
         String id = decision.type() == ScanReconciler.DecisionType.CREATE
                 ? TrackIdentity.forFile(Path.of(file.relativePath()))
                 : decision.trackId();

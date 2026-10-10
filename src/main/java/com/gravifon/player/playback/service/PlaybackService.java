@@ -11,9 +11,12 @@ import com.gravifon.player.playlist.model.Playlist;
 import com.gravifon.player.playlist.service.PlaylistService;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.repository.TrackRepository;
-import jakarta.annotation.PostConstruct;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,8 +30,7 @@ public class PlaybackService {
     private static final String SESSION_ID = "default";
     private PlaybackSession session = PlaybackSession.initial(SESSION_ID);
 
-    @PostConstruct
-    void restoreState() {
+    public synchronized void restoreState() {
         stateRepository.find(SESSION_ID).ifPresent(state -> {
             PlaybackMode mode = PlaybackMode.SEQUENTIAL;
             if (state.activePlaylistId() != null) {
@@ -56,6 +58,29 @@ public class PlaybackService {
 
     public synchronized PlaybackState getState() {
         return session.toPlaybackState();
+    }
+
+    public synchronized List<Track> upcomingTracks(int limit) {
+        if (session.activePlaylistId() == null || session.currentTrackId() == null || limit < 1) {
+            return List.of();
+        }
+        Playlist active;
+        try {
+            active = playlistService.getActive();
+        } catch (EntityNotFoundException exception) {
+            return List.of();
+        }
+        List<String> upcomingIds = selectorRegistry
+            .forMode(session.playbackMode())
+            .upcoming(active.trackIds(), session.currentTrackId(), limit);
+        if (upcomingIds.isEmpty()) {
+            return List.of();
+        }
+        Map<String, Track> tracksById = trackRepository
+            .findAllById(upcomingIds)
+            .stream()
+            .collect(Collectors.toMap(Track::id, Function.identity(), (first, ignored) -> first));
+        return upcomingIds.stream().map(tracksById::get).filter(Objects::nonNull).toList();
     }
 
     public synchronized PlaybackState initializeClient() {

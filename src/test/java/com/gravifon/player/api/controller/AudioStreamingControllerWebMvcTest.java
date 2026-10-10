@@ -61,6 +61,18 @@ class AudioStreamingControllerWebMvcTest {
     }
 
     @Test
+    void streamTrack_flacUsesAudioFlacContentType() throws Exception {
+        Path track = createTrackFile("track.flac", "flac-data");
+        when(trackRegistry.getTrack("t1")).thenReturn(fileTrack("t1", "flac"));
+        when(trackRegistry.resolveTrackPath("t1")).thenReturn(track);
+
+        mockMvc
+            .perform(get("/api/stream/t1"))
+            .andExpect(status().isOk())
+            .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "audio/flac"));
+    }
+
+    @Test
     void streamTrack_withClosedRange_returnsPartialContent() throws Exception {
         Path track = createTrackFile("track.mp3", "0123456789");
         when(trackRegistry.getTrack("t1")).thenReturn(fileTrack("t1", "mp3"));
@@ -98,6 +110,20 @@ class AudioStreamingControllerWebMvcTest {
         mockMvc
             .perform(get("/api/stream/t3").header(HttpHeaders.RANGE, "bytes=100-120"))
             .andExpect(status().isRequestedRangeNotSatisfiable())
+            .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes */10"))
+            .andExpect(jsonPath("$.status").value(416));
+    }
+
+    @Test
+    void streamTrack_withMultipartRange_returns416() throws Exception {
+        Path track = createTrackFile("track.flac", "abcdefghij");
+        when(trackRegistry.getTrack("t3")).thenReturn(fileTrack("t3", "flac"));
+        when(trackRegistry.resolveTrackPath("t3")).thenReturn(track);
+
+        mockMvc
+            .perform(get("/api/stream/t3").header(HttpHeaders.RANGE, "bytes=0-1,3-4"))
+            .andExpect(status().isRequestedRangeNotSatisfiable())
+            .andExpect(header().string(HttpHeaders.CONTENT_RANGE, "bytes */10"))
             .andExpect(jsonPath("$.status").value(416));
     }
 
