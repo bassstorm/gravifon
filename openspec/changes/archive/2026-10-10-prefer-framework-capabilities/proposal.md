@@ -28,6 +28,6 @@ None.
 
 - Code: `config/StreamRefreshProperties`, `config/StreamProxyProperties`, `config/LibraryProperties`, `streaming/HttpStreamProxyConfiguration`, `streaming/HttpStreamProxy`, `src/main/resources/application.yml`.
 - Tests: delete `ScopedPropertiesTest`, `HttpStreamProxyContextTest`, `FlywayMigrationTest`, `NoOpTagWriteBackHandlerTest`; trim `ApiModelMappingTest`. No new tests.
-- Docs: `AGENTS.md`, `SPRING_BOOT_REVAMP_PLAN.md` (new phase entry).
+- Docs: `AGENTS.md`.
 - Behavior: invalid stream/proxy configuration now fails startup with Boot's `BindValidationException` message instead of a wrapped `IllegalArgumentException`. A removed key in `application.yml` now fails startup instead of silently using a code default. ISO-8601 values supplied through existing environment variables remain valid, because Boot accepts both notations.
 - Verification: JaCoCo bundle line coverage must stay at or above 80% (currently about 88%).

@@ -50,4 +50,4 @@ Modernizing controller boundaries, adopting declarative Bean Validation, delegat
 - **Web Controllers & DTOs**: `PlaylistController`, `PlaybackController`, `TrackController`, `ApiExceptionHandler`, and request models in `com.gravifon.player.api.model`.
 - **Services**: `PlaylistService`, `StreamTrackRegistrar`, and `TrackRegistry`.
 - **Web MVC Tests**: `TrackControllerWebMvcTest`, `PlaylistControllerWebMvcTest`, `PlaybackControllerWebMvcTest`, and dedicated exception handling tests.
-- **Documentation & Specifications**: `AGENTS.md`, `openspec/specs/player-rest-api/spec.md`, and `SPRING_BOOT_REVAMP_PLAN.md`.
+- **Documentation & Specifications**: `AGENTS.md`, and `openspec/specs/player-rest-api/spec.md`.
