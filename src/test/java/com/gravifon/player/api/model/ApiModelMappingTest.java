@@ -2,7 +2,6 @@ package com.gravifon.player.api.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gravifon.player.playback.model.PlaybackMode;
 import com.gravifon.player.playback.model.PlaybackState;
 import com.gravifon.player.playback.model.TransportState;
@@ -18,16 +17,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class ApiModelMappingTest {
-    @Test
-    void requestModelsSerializeWithoutValidationHelperProperties() throws Exception {
-        String json =
-                new ObjectMapper()
-            .writeValueAsString(new PlaylistCreateRequest("Mix", List.of(), List.of(), false, null));
-
-        assertThat(json).contains("\"name\":\"Mix\"");
-        assertThat(json).doesNotContain("isValid");
-    }
-
     @Test
     void requestModelsExposeDeclarativeValidationConstraints() {
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {

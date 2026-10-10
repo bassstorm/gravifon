@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -38,22 +39,22 @@ public class HttpStreamProxy implements StreamProxy {
             throw new IllegalArgumentException("Cannot proxy non-stream track: " + track.id());
         }
         streamTrack = refresher.ensureValid(streamTrack, refreshProperties.refreshMinValidity());
-        String range = request.getHeader("Range");
+        String range = request.getHeader(HttpHeaders.RANGE);
 
         client
             .get()
             .uri(URI.create(streamTrack.streamUrl()))
             .headers(headers -> {
                 if (StringUtils.hasText(range)) {
-                    headers.set("Range", range);
+                    headers.set(HttpHeaders.RANGE, range);
                 }
             })
             .exchange((clientRequest, clientResponse) -> {
                 response.setStatus(clientResponse.getStatusCode().value());
-                copyHeader(clientResponse, response, "Content-Type");
-                copyHeader(clientResponse, response, "Content-Length");
-                copyHeader(clientResponse, response, "Content-Range");
-                copyHeader(clientResponse, response, "Accept-Ranges");
+                copyHeader(clientResponse, response, HttpHeaders.CONTENT_TYPE);
+                copyHeader(clientResponse, response, HttpHeaders.CONTENT_LENGTH);
+                copyHeader(clientResponse, response, HttpHeaders.CONTENT_RANGE);
+                copyHeader(clientResponse, response, HttpHeaders.ACCEPT_RANGES);
                 try (InputStream body = clientResponse.getBody()) {
                     body.transferTo(response.getOutputStream());
                 }
