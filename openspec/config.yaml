@@ -11,13 +11,16 @@ schema: spec-driven
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - "Keep the proposal short and in plain English: state problem, intent, high-level scope, and affected capabilities."
+    - "Do not include architectural diagrams, class/method names, package rules, or step-by-step implementation details (those belong in design and tasks)."
+  design:
+    - "Start with a high-level design (HLD) overview, followed by distinct architectural decisions with rationale and considered alternatives, and a brief verification strategy."
+    - "Focus on enduring principles, boundaries, and trade-offs; do not duplicate task checklists or file-by-file edit instructions."
+  tasks:
+    - "Make tasks self-contained and actionable so an implementor can execute the change using only tasks.md and design.md without prior conversation context."
+    - "Put concrete file paths, class/method changes, and targeted verification commands here rather than in proposal.md or design.md."
 
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.
