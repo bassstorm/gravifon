@@ -20,15 +20,11 @@ The system MUST keep OpenSpec config and repository guidance consistent with pla
 - **THEN** configuration and docs provide consistent instructions and paths
 
 ### Requirement: Operational behavior is documented
-The system SHALL document key operational constraints, including in-memory state lifecycle and supported media/playlist formats.
+The project documentation SHALL describe correlation propagation, unverified username session acquisition, instance-session lifetimes, shared-registry stream registration, and diagnostic verification for multi-instance clients.
 
-#### Scenario: Product expectation setting
-- **WHEN** a stakeholder reviews operational docs
-- **THEN** they can identify current supported behavior and deferred capabilities
-
-#### Scenario: Access scope is reviewed
-- **WHEN** a stakeholder reviews access constraints
-- **THEN** documentation explicitly states single-user scope, no authn/authz, and no session management
+#### Scenario: Agent investigates session behavior
+- **WHEN** an agent inspects project docs
+- **THEN** it can identify how `X-Client-Session`, `CorrelationId`, username resolution, and stream registration interact without reading source code first
 
 ### Requirement: Testing and implementation conventions are documented
 The system MUST document project conventions for high unit-test coverage, preferred testing libraries, lean Java coding style, and clean verification flows.

@@ -150,12 +150,13 @@ None remain for the current session scope. Concrete choices are specified in Par
 
 ### Execution Strategy and Change Relationship
 
-Use a selective replacement, not an old/new compatibility refactor. There are three implementation phases across two tightly related changes:
+Use a selective replacement, not an old/new compatibility refactor. The implementation phases across the coordinated changes are:
 
 | Phase | Owning change | Reviewable outcome |
 |---|---|---|
 | 1. Session foundation and selective reset | This change | A green retained application with durable users/sessions and session-scoped access to retained APIs; obsolete playlist/playback code removed. |
-| 2. Playlist and queue foundation | `redesign-playlist-and-playback-queue` | User-owned playlists, queue behavior, contained playback-context persistence, and atomic source reconciliation. |
+| 1.5. Enforced vertical slices and YAGNI simplification | `replace-jmolecules-with-vertical-slices` | jMolecules removed; vertical package slices and horizontal purity enforced by plain ArchUnit; 1:1 repository adapters collapsed; scan references collected via `List<ReferencedTrackIdsPort>`. |
+| 2. Playlist and queue foundation | `redesign-playlist-and-playback-queue` | User-owned playlists, queue behavior, contained playback-context persistence, and atomic event-driven source reconciliation. |
 | 3. Playback protocol and integration | `redesign-playlist-and-playback-queue` | Transport/execution commands, authority and sequencing, canonical snapshots, and restored upcoming-track refresh integration. |
 
 Phases keep implementation and human review scoped, progressing from isolated behavior to cross-component coordination. Intermediate phases are not expected to provide an end-to-end working player. Each phase must compile, start, preserve its retained functionality, and pass meaningful behavioral verification. Individual edits within a phase need not compile, but its review boundary must be green.
