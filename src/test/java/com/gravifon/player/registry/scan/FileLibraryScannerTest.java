@@ -25,7 +25,9 @@ class FileLibraryScannerTest {
             .singleElement()
             .satisfies(scanFile -> {
                 assertThat(scanFile.readable()).isFalse();
-                assertThat(scanFile.metadata()).isEmpty();
+                assertThat(scanFile.relativePath()).isEqualTo(Path.of("broken.mp3"));
+                assertThat(scanFile.modifiedTime()).isNotNull();
+                assertThat(scanFile.metadata().values()).isEmpty();
             });
     }
 }

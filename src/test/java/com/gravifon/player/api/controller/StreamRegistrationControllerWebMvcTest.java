@@ -13,6 +13,7 @@ import com.gravifon.player.api.interceptor.ClientSessionWebMvcConfiguration;
 import com.gravifon.player.observability.CorrelationIdFilter;
 import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.service.StreamTrackRegistrar;
 import com.gravifon.player.registry.stream.StreamResolverRegistry;
@@ -20,6 +21,7 @@ import com.gravifon.player.session.model.Caller;
 import com.gravifon.player.session.model.ClientSessionId;
 import com.gravifon.player.session.model.UserId;
 import com.gravifon.player.session.service.SessionService;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,7 +64,8 @@ class StreamRegistrationControllerWebMvcTest {
         Track first = streamTrack("track-1");
         Track second = streamTrack("track-2");
         String httpSourceUrl = "http://example.com/second";
-        when(registrar.registerSources(List.of(SOURCE_URL, httpSourceUrl))).thenReturn(List.of(first, second, first));
+        when(registrar.registerSources(List.of(URI.create(SOURCE_URL), URI.create(httpSourceUrl))))
+            .thenReturn(List.of(first, second, first));
 
         mockMvc
             .perform(
@@ -92,7 +95,7 @@ class StreamRegistrationControllerWebMvcTest {
 
     @Test
     void unsupportedResolverIsAnExplicitInputErrorWithoutEchoingTheUrl() throws Exception {
-        when(registrar.registerSources(List.of(SOURCE_URL)))
+        when(registrar.registerSources(List.of(URI.create(SOURCE_URL))))
             .thenThrow(new StreamResolverRegistry.NoStreamResolverException(SOURCE_URL));
 
         mockMvc
@@ -106,7 +109,8 @@ class StreamRegistrationControllerWebMvcTest {
 
     @Test
     void resolverFailureIsAnExplicitServerErrorRatherThanAnEmptySuccess() throws Exception {
-        when(registrar.registerSources(List.of(SOURCE_URL))).thenThrow(new IllegalStateException("upstream failure"));
+        when(registrar.registerSources(List.of(URI.create(SOURCE_URL))))
+            .thenThrow(new IllegalStateException("upstream failure"));
 
         mockMvc
             .perform(registerRequest("""
@@ -128,10 +132,10 @@ class StreamRegistrationControllerWebMvcTest {
     private static StreamTrack streamTrack(String id) {
         return new StreamTrack(
                 id,
-                Map.of("TITLE", List.of(id)),
+                new TrackMetadata(Map.of("TITLE", List.of(id))),
                 100L,
                 TrackState.healthy(),
-                "https://example.com/" + id,
+                URI.create("https://example.com/" + id),
                 null,
                 null
         );

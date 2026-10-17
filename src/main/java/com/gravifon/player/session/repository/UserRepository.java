@@ -5,6 +5,7 @@ import com.gravifon.player.persistence.JpaAdmissionLockStore;
 import com.gravifon.player.persistence.JpaUserStore;
 import com.gravifon.player.session.model.User;
 import com.gravifon.player.session.model.UserId;
+import com.gravifon.player.session.model.Username;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -17,8 +18,8 @@ public class UserRepository {
     private final JpaAdmissionLockStore admissionLocks;
 
     @Transactional(readOnly = true)
-    public Optional<User> findByNormalizedName(String normalizedName) {
-        return store.findByNormalizedName(normalizedName).map(UserConverter::toDomain);
+    public Optional<User> findByUsername(Username username) {
+        return store.findByNormalizedName(username.normalizedName()).map(UserConverter::toDomain);
     }
 
     @Transactional(readOnly = true)
@@ -38,6 +39,6 @@ public class UserRepository {
 
     @Transactional
     public Optional<User> lockById(UserId id) {
-        return store.lockById(id.value()).map(UserConverter::toDomain);
+        return store.findLockedById(id.value()).map(UserConverter::toDomain);
     }
 }

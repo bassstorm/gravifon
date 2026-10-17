@@ -15,7 +15,7 @@ public record SessionResponse(
         return new SessionResponse(
                 acquisition.session().id().value(),
                 acquisition.user().id().value(),
-                acquisition.user().displayName(),
+                acquisition.user().username().displayName(),
                 acquisition.session().lastActivityAt(),
                 acquisition.session().lastActivityAt().plus(inactivityTimeout)
         );

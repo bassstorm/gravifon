@@ -7,6 +7,7 @@ import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.stream.StreamResolutionException;
 import com.gravifon.player.registry.stream.StreamResolver;
 import com.gravifon.player.registry.stream.StreamResolverRegistry;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -21,16 +22,9 @@ public class StreamTrackRegistrar {
         this.persistence = persistence;
     }
 
-    public List<Track> registerSources(List<String> sourceUrls) {
-        if (sourceUrls == null || sourceUrls.isEmpty()) {
-            throw new IllegalArgumentException("At least one source URL is required");
-        }
-
+    public List<Track> registerSources(List<URI> sourceUrls) {
         List<StreamTrack> resolvedTracks = new ArrayList<>();
-        for (String sourceUrl : sourceUrls) {
-            if (sourceUrl == null || sourceUrl.isBlank()) {
-                throw new IllegalArgumentException("Source URLs must not be blank");
-            }
+        for (URI sourceUrl : sourceUrls) {
             StreamResolver resolver = resolverRegistry.resolverFor(sourceUrl);
             List<StreamResolver.ResolvedTrack> sourceResults;
             try {
@@ -46,7 +40,7 @@ public class StreamTrackRegistrar {
                     throw new StreamResolutionException();
                 }
                 try {
-                    String id = TrackIdentity.forStream(resolved.sourceUrl(), resolver.normalizer());
+                    String id = TrackIdentity.forStream(resolved.sourceUrl());
                     resolvedTracks.add(
                             new StreamTrack(
                                     id,

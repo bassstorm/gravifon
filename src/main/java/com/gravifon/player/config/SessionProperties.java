@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 @Validated
-@ConfigurationProperties(prefix = "gravifon.sessions")
+@ConfigurationProperties(prefix = "gravifon.session")
 public record SessionProperties(
         @NotNull @DurationMin(nanos = 1) Duration inactivityTimeout,
         @NotBlank String cleanupCron

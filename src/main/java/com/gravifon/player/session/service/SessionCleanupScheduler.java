@@ -27,7 +27,7 @@ public class SessionCleanupScheduler {
         this.clock = clock;
     }
 
-    @Scheduled(cron = "${gravifon.sessions.cleanup-cron}")
+    @Scheduled(cron = "${gravifon.session.cleanup-cron}")
     public void cleanupExpiredSessions() {
         var candidates = sessions.findCleanupCandidates(clock.instant(), properties.inactivityTimeout());
         log.debug("Found {} client sessions eligible for cleanup", candidates.size());

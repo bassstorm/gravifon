@@ -28,7 +28,7 @@ class AdmissionLockDataJpaTest {
     void migrationSeedsEveryAdmissionScope() {
         assertThat(admissionLocks.findAll()).hasSize(AdmissionScope.values().length);
         for (AdmissionScope scope : AdmissionScope.values()) {
-            assertThat(admissionLocks.lockByScope(scope)).as(scope.name()).isPresent();
+            assertThat(admissionLocks.findLockedByScope(scope)).as(scope.name()).isPresent();
         }
     }
 

@@ -1,24 +1,19 @@
 package com.gravifon.player.registry.stream;
 
-import com.gravifon.player.registry.identity.DefaultSourceUrlNormalizer;
-import com.gravifon.player.registry.identity.SourceUrlNormalizer;
-import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.model.StreamTrack;
+import com.gravifon.player.registry.model.TrackMetadata;
+import java.net.URI;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 public interface StreamResolver {
-    boolean supports(String sourceUrl);
+    boolean supports(URI sourceUrl);
 
-    default SourceUrlNormalizer normalizer() {
-        return new DefaultSourceUrlNormalizer();
-    }
+    List<ResolvedTrack> resolveTracks(URI sourceUrl);
 
-    List<ResolvedTrack> resolveTracks(String sourceUrl);
+    ResolvedStream refreshStream(StreamTrack track);
 
-    ResolvedStream refreshStream(Track track);
+    record ResolvedTrack(URI sourceUrl, TrackMetadata metadata, Long durationSeconds) {}
 
-    record ResolvedTrack(String sourceUrl, Map<String, List<String>> metadata, Long durationSeconds) {}
-
-    record ResolvedStream(String streamUrl, Instant expiresAfter) {}
+    record ResolvedStream(URI streamUrl, Instant expiresAfter) {}
 }

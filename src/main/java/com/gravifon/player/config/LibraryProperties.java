@@ -7,4 +7,4 @@ import org.springframework.validation.annotation.Validated;
 
 @Validated
 @ConfigurationProperties(prefix = "gravifon.library")
-public record LibraryProperties(@NotNull Path musicRoot, boolean startupScanEnabled) {}
+public record LibraryProperties(@NotNull Path dir, boolean startupScanEnabled) {}

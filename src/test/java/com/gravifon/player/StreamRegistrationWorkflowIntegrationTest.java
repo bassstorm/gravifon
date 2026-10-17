@@ -8,8 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gravifon.player.api.model.TrackResponse;
-import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.model.StreamTrack;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.stream.StreamResolver;
+import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -118,25 +120,33 @@ class StreamRegistrationWorkflowIntegrationTest {
 
     private static class FixtureResolver implements StreamResolver {
         @Override
-        public boolean supports(String sourceUrl) {
-            return ALBUM_SOURCE.equals(sourceUrl) || SINGLE_SOURCE.equals(sourceUrl);
+        public boolean supports(URI sourceUrl) {
+            return ALBUM_SOURCE.equals(sourceUrl.toString()) || SINGLE_SOURCE.equals(sourceUrl.toString());
         }
 
         @Override
-        public List<ResolvedTrack> resolveTracks(String sourceUrl) {
-            ResolvedTrack first = new ResolvedTrack(FIRST_TRACK_SOURCE, Map.of("TITLE", List.of("First track")), 100L);
-            if (SINGLE_SOURCE.equals(sourceUrl)) {
+        public List<ResolvedTrack> resolveTracks(URI sourceUrl) {
+            ResolvedTrack first = new ResolvedTrack(
+                    URI.create(FIRST_TRACK_SOURCE),
+                    new TrackMetadata(Map.of("TITLE", List.of("First track"))),
+                    100L
+            );
+            if (SINGLE_SOURCE.equals(sourceUrl.toString())) {
                 return List.of(first);
             }
             return List.of(
                     first,
-                    new ResolvedTrack(SECOND_TRACK_SOURCE, Map.of("TITLE", List.of("Second track")), 110L)
+                    new ResolvedTrack(
+                            URI.create(SECOND_TRACK_SOURCE),
+                            new TrackMetadata(Map.of("TITLE", List.of("Second track"))),
+                            110L
+                    )
             );
         }
 
         @Override
-        public ResolvedStream refreshStream(Track track) {
-            return new ResolvedStream("https://cdn.example/stream", Instant.EPOCH.plusSeconds(60));
+        public ResolvedStream refreshStream(StreamTrack track) {
+            return new ResolvedStream(URI.create("https://cdn.example/stream"), Instant.EPOCH.plusSeconds(60));
         }
     }
 }

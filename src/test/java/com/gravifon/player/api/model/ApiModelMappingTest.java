@@ -4,10 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -31,7 +33,15 @@ class ApiModelMappingTest {
 
     @Test
     void trackResponse_fromMapsFields() {
-        Track track = new FileTrack("track-1", Map.of(), 42L, TrackState.healthy(), "a.mp3", "mp3");
+        Track track =
+                new FileTrack(
+                        "track-1",
+                        new TrackMetadata(Map.of()),
+                        42L,
+                        TrackState.healthy(),
+                        Path.of("a.mp3"),
+                        "mp3"
+        );
 
         TrackResponse response = TrackResponse.from(track);
 

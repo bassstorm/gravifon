@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.repository.TrackRepository;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -24,10 +26,10 @@ class PersistenceRepositoryDataJpaTest {
         Track track = fileTrack("track-1");
         Track saved = tracks.save(track);
 
-        assertThat(saved.metadata()).containsEntry("GENRE", List.of("ambient", "downtempo"));
+        assertThat(saved.metadata().values()).containsEntry("GENRE", List.of("ambient", "downtempo"));
         assertThat(tracks.findById("track-1"))
             .get()
-            .satisfies(reloaded -> assertThat(reloaded.metadata())
+            .satisfies(reloaded -> assertThat(reloaded.metadata().values())
                 .containsEntry("GENRE", List.of("ambient", "downtempo")));
         assertThat(tracks.existsById("track-1")).isTrue();
         assertThat(tracks.existsById("non-existent")).isFalse();
@@ -40,8 +42,8 @@ class PersistenceRepositoryDataJpaTest {
         assertThat(tracks.findById("track-1"))
             .get()
             .satisfies(reloaded -> {
-                assertThat(reloaded.metadata()).containsOnlyKeys("ARTIST");
-                assertThat(reloaded.metadata().get("ARTIST")).containsExactly("Solo Artist");
+                assertThat(reloaded.metadata().values()).containsOnlyKeys("ARTIST");
+                assertThat(reloaded.metadata().values().get("ARTIST")).containsExactly("Solo Artist");
             });
     }
 
@@ -59,6 +61,6 @@ class PersistenceRepositoryDataJpaTest {
     }
 
     private Track fileTrack(String id, Map<String, List<String>> metadata) {
-        return new FileTrack(id, metadata, 120L, TrackState.healthy(), id + ".mp3", "mp3");
+        return new FileTrack(id, new TrackMetadata(metadata), 120L, TrackState.healthy(), Path.of(id + ".mp3"), "mp3");
     }
 }

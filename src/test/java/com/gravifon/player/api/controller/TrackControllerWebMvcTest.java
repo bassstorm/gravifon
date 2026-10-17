@@ -19,8 +19,10 @@ import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackError;
 import com.gravifon.player.registry.model.TrackErrorReporter;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.service.TrackRegistry;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +52,15 @@ class TrackControllerWebMvcTest {
 
     @Test
     void listTracks_returnsTrackDtosAndPreservesCorrelationHeader() throws Exception {
-        Track track = new FileTrack("track-1", java.util.Map.of(), 123L, TrackState.healthy(), "a.mp3", "mp3");
+        Track track =
+                new FileTrack(
+                        "track-1",
+                        new TrackMetadata(Map.of()),
+                        123L,
+                        TrackState.healthy(),
+                        Path.of("a.mp3"),
+                        "mp3"
+        );
         when(trackRegistry.listTracks()).thenReturn(List.of(track));
 
         mockMvc
@@ -104,16 +114,16 @@ class TrackControllerWebMvcTest {
 
     @Test
     void updateMetadata_appliesValidMetadata() throws Exception {
-        Track updated =
-                new FileTrack(
-                        "track-1",
-                        Map.of("TITLE", List.of("Updated")),
-                        123L,
-                        TrackState.healthy(),
-                        "a.mp3",
-                        "mp3"
+        Track updated = new FileTrack(
+                "track-1",
+                new TrackMetadata(Map.of("TITLE", List.of("Updated"))),
+                123L,
+                TrackState.healthy(),
+                Path.of("a.mp3"),
+                "mp3"
         );
-        when(trackRegistry.updateMetadata("track-1", Map.of("TITLE", List.of("Updated")))).thenReturn(updated);
+        when(trackRegistry.updateMetadata("track-1", new TrackMetadata(Map.of("TITLE", List.of("Updated")))))
+            .thenReturn(updated);
 
         mockMvc
             .perform(patch("/api/tracks/track-1/metadata")
@@ -140,7 +150,7 @@ class TrackControllerWebMvcTest {
 
     @Test
     void updateMetadata_returns404WhenTrackIsMissing() throws Exception {
-        when(trackRegistry.updateMetadata("missing", Map.of()))
+        when(trackRegistry.updateMetadata("missing", new TrackMetadata(Map.of())))
             .thenThrow(new EntityNotFoundException("Track not found: missing"));
 
         mockMvc
@@ -156,16 +166,24 @@ class TrackControllerWebMvcTest {
     void reportState_recordsAndClearsTrackFailure() throws Exception {
         Track failing = new FileTrack(
                 "track-1",
-                Map.of(),
+                new TrackMetadata(Map.of()),
                 123L,
                 new TrackState(
                         true,
                         new TrackError("UPSTREAM", "Unavailable", Instant.EPOCH, TrackErrorReporter.CLIENT)
                 ),
-                "a.mp3",
+                Path.of("a.mp3"),
                 "mp3"
         );
-        Track healthy = new FileTrack("track-1", Map.of(), 123L, TrackState.healthy(), "a.mp3", "mp3");
+        Track healthy =
+                new FileTrack(
+                        "track-1",
+                        new TrackMetadata(Map.of()),
+                        123L,
+                        TrackState.healthy(),
+                        Path.of("a.mp3"),
+                        "mp3"
+        );
         when(trackRegistry.reportFailure("track-1", "UPSTREAM", "Unavailable")).thenReturn(failing);
         when(trackRegistry.clearError("track-1")).thenReturn(healthy);
 

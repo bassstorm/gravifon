@@ -57,7 +57,7 @@ class GravifonIntegrationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("gravifon.library.music-root", () -> musicRoot.toString());
+        registry.add("gravifon.library.dir", () -> musicRoot.toString());
     }
 
     @BeforeAll

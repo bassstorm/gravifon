@@ -2,8 +2,7 @@ package com.gravifon.player.registry.metadata;
 
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackKind;
-import java.util.List;
-import java.util.Map;
+import com.gravifon.player.registry.model.TrackMetadata;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,7 +13,7 @@ public class NoOpTagWriteBackHandler implements TagWriteBackHandler {
     }
 
     @Override
-    public WriteBackResult writeBack(Track track, Map<String, List<String>> metadata) {
+    public WriteBackResult writeBack(Track track, TrackMetadata metadata) {
         return new WriteBackResult(true, "File tag write-back is disabled");
     }
 }

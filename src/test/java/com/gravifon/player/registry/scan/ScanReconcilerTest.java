@@ -10,9 +10,11 @@ import com.gravifon.player.registry.identity.TrackIdentity;
 import com.gravifon.player.registry.metadata.MetadataExtractor;
 import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,8 +33,11 @@ class ScanReconcilerTest {
 
         List<LibraryScanner.ScanFile> files = new FileLibraryScanner(extractor).scan(root);
 
-        assertThat(files).extracting(LibraryScanner.ScanFile::relativePath).containsExactly("nested/song.mp3");
-        assertThat(files.getFirst().metadata()).containsEntry("TITLE", List.of("Song"));
+        assertThat(files)
+            .extracting(LibraryScanner.ScanFile::relativePath)
+            .containsExactly(root.getFileSystem().getPath("nested/song.mp3"));
+        assertThat(files.getFirst().modifiedTime()).isNotNull();
+        assertThat(files.getFirst().metadata().values()).containsEntry("TITLE", List.of("Song"));
     }
 
     @Test
@@ -51,9 +56,10 @@ class ScanReconcilerTest {
     @Test
     void createsNewFilesAndRefreshesKnownFiles() {
         Track existing = fileTrack(TrackIdentity.forFile(Path.of("known.mp3")), "known.mp3");
-        List<LibraryScanner.ScanFile> files = List.of(
-                new LibraryScanner.ScanFile("known.mp3", "mp3", true, 120L),
-                new LibraryScanner.ScanFile("new.ogg", "ogg", true, 90L)
+        List<LibraryScanner.ScanFile> files =
+                List.of(
+                        scanFile("known.mp3", "mp3", true, Map.of(), 120L),
+                        scanFile("new.ogg", "ogg", true, Map.of(), 90L)
         );
 
         List<ScanReconciler.Decision> decisions = new ScanReconciler().reconcile(List.of(existing), files, Set.of());
@@ -61,6 +67,7 @@ class ScanReconcilerTest {
         assertThat(decisions)
             .extracting(ScanReconciler.Decision::type)
             .containsExactly(ScanReconciler.DecisionType.REFRESH, ScanReconciler.DecisionType.CREATE);
+        assertThat(decisions.getLast().trackId()).isEqualTo(TrackIdentity.forFile(Path.of("new.ogg")));
     }
 
     @Test
@@ -68,20 +75,12 @@ class ScanReconcilerTest {
         Track existing = fileTrack(TrackIdentity.forFile(Path.of("known.mp3")), "known.mp3");
 
         assertThat(new ScanReconciler()
-            .reconcile(
-                    List.of(existing),
-                    List.of(new LibraryScanner.ScanFile("known.mp3", "mp3", false, Map.of(), null)),
-                    Set.of()
-            )
+            .reconcile(List.of(existing), List.of(scanFile("known.mp3", "mp3", false, Map.of(), null)), Set.of())
         )
             .extracting(ScanReconciler.Decision::type)
             .containsExactly(ScanReconciler.DecisionType.REFRESH);
         assertThat(new ScanReconciler()
-            .reconcile(
-                    List.of(existing),
-                    List.of(new LibraryScanner.ScanFile("known.mp3", "mp3", true, Map.of(), 100L)),
-                    Set.of()
-            )
+            .reconcile(List.of(existing), List.of(scanFile("known.mp3", "mp3", true, Map.of(), 100L)), Set.of())
         )
             .extracting(ScanReconciler.Decision::type)
             .containsExactly(ScanReconciler.DecisionType.REFRESH);
@@ -95,15 +94,7 @@ class ScanReconcilerTest {
         List<ScanReconciler.Decision> decisions = new ScanReconciler()
             .reconcile(
                     List.of(existing),
-                    List.of(
-                            new LibraryScanner.ScanFile(
-                                    "missing.mp3",
-                                    "mp3",
-                                    true,
-                                    Map.of("TITLE", List.of("Back")),
-                                    100L
-                            )
-                    ),
+                    List.of(scanFile("missing.mp3", "mp3", true, Map.of("TITLE", List.of("Back")), 100L)),
                     Set.of()
             );
 
@@ -112,11 +103,28 @@ class ScanReconcilerTest {
             .satisfies(decision -> {
                 assertThat(decision.type()).isEqualTo(ScanReconciler.DecisionType.REFRESH);
                 assertThat(decision.trackId()).isEqualTo(id);
-                assertThat(decision.file().metadata()).containsEntry("TITLE", List.of("Back"));
+                assertThat(decision.file().metadata().values()).containsEntry("TITLE", List.of("Back"));
             });
     }
 
     private Track fileTrack(String id, String path) {
-        return new FileTrack(id, Map.of(), 60L, TrackState.healthy(), path, "mp3");
+        return new FileTrack(id, new TrackMetadata(Map.of()), 60L, TrackState.healthy(), Path.of(path), "mp3");
+    }
+
+    private static LibraryScanner.ScanFile scanFile(
+            String path,
+            String format,
+            boolean readable,
+            Map<String, List<String>> metadata,
+            Long durationSeconds
+    ) {
+        return new LibraryScanner.ScanFile(
+                Path.of(path),
+                Instant.EPOCH,
+                new TrackMetadata(metadata),
+                durationSeconds,
+                format,
+                readable
+        );
     }
 }

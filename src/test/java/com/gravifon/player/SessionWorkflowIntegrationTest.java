@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gravifon.player.api.model.TrackResponse;
 import com.gravifon.player.registry.service.TrackRegistry;
 import com.gravifon.player.session.model.ClientSessionId;
+import com.gravifon.player.session.model.Username;
 import com.gravifon.player.session.repository.ClientSessionRepository;
 import com.gravifon.player.session.repository.UserRepository;
 import java.io.IOException;
@@ -58,7 +59,7 @@ class SessionWorkflowIntegrationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("gravifon.library.music-root", () -> musicRoot.toString());
+        registry.add("gravifon.library.dir", () -> musicRoot.toString());
     }
 
     @Autowired
@@ -138,7 +139,7 @@ class SessionWorkflowIntegrationTest {
             assertThat(sessions.findById(ClientSessionId.of(sessionId))).isEmpty();
         }
         for (String normalizedName : createdUserNames) {
-            assertThat(users.findByNormalizedName(normalizedName)).isEmpty();
+            assertThat(users.findByUsername(Username.from(normalizedName))).isEmpty();
         }
     }
 

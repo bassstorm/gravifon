@@ -8,13 +8,14 @@ import com.gravifon.player.session.model.ClientSession;
 import com.gravifon.player.session.model.ClientSessionId;
 import com.gravifon.player.session.model.User;
 import com.gravifon.player.session.model.UserId;
+import com.gravifon.player.session.model.Username;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
 class SessionConvertersTest {
     @Test
     void userRoundTripPreservesIdentityAndCreationInstant() {
-        User user = new User(new UserId("user-1"), "alice", "Alice", Instant.parse("2026-01-01T12:00:00Z"));
+        User user = new User(new UserId("user-1"), Username.from("Alice"), Instant.parse("2026-01-01T12:00:00Z"));
 
         UserEntity entity = UserConverter.toEntity(user);
 
@@ -25,7 +26,7 @@ class SessionConvertersTest {
     void clientSessionRoundTripPreservesNullableInvalidationAndInstants() {
         Instant createdAt = Instant.parse("2026-01-01T12:00:00Z");
         Instant activityAt = createdAt.plusSeconds(90);
-        UserEntity user = UserConverter.toEntity(new User(new UserId("user-2"), "bob", "Bob", createdAt));
+        UserEntity user = UserConverter.toEntity(new User(new UserId("user-2"), Username.from("Bob"), createdAt));
         ClientSession activeSession =
                 new ClientSession(
                         new ClientSessionId("session-active"),

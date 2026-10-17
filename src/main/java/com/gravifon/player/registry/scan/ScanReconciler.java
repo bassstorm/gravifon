@@ -3,7 +3,6 @@ package com.gravifon.player.registry.scan;
 import com.gravifon.player.registry.identity.TrackIdentity;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackKind;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,9 +17,13 @@ public class ScanReconciler {
             List<LibraryScanner.ScanFile> scanned,
             Set<String> referencedTrackIds
     ) {
-        Map<String, LibraryScanner.ScanFile> filesById = scanned
+        List<ScannedFile> indexedFiles =
+                scanned
             .stream()
-            .collect(Collectors.toMap(file -> TrackIdentity.forFile(Path.of(file.relativePath())), Function.identity()));
+            .map(file -> new ScannedFile(TrackIdentity.forFile(file.relativePath()), file))
+            .toList();
+        Map<String, LibraryScanner.ScanFile> filesById =
+                indexedFiles.stream().collect(Collectors.toMap(ScannedFile::trackId, ScannedFile::file));
         Map<String, Track> existingFilesById = existing
             .stream()
             .filter(track -> track.kind() == TrackKind.FILE)
@@ -35,14 +38,11 @@ public class ScanReconciler {
                     : new Decision(DecisionType.REMOVE, track.id(), null))
             .collect(Collectors.toList());
 
-        decisions.addAll(scanned.stream().map(file -> {
-            String fileId = TrackIdentity.forFile(Path.of(file.relativePath()));
+        decisions.addAll(indexedFiles.stream().map(indexed -> {
+            String fileId = indexed.trackId();
+            LibraryScanner.ScanFile file = indexed.file();
             Track existingTrack = existingFilesById.get(fileId);
-            return new Decision(
-                    existingTrack == null ? DecisionType.CREATE : DecisionType.REFRESH,
-                    existingTrack == null ? null : existingTrack.id(),
-                    file
-            );
+            return new Decision(existingTrack == null ? DecisionType.CREATE : DecisionType.REFRESH, fileId, file);
         }).toList());
 
         return List.copyOf(decisions);
@@ -56,4 +56,6 @@ public class ScanReconciler {
     }
 
     public record Decision(DecisionType type, String trackId, LibraryScanner.ScanFile file) {}
+
+    private record ScannedFile(String trackId, LibraryScanner.ScanFile file) {}
 }

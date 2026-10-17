@@ -14,13 +14,14 @@ schema: spec-driven
 rules:
   proposal:
     - "Keep the proposal short and in plain English: state problem, intent, high-level scope, and affected capabilities."
-    - "Do not include architectural diagrams, class/method names, package rules, or step-by-step implementation details (those belong in design and tasks)."
+    - "Do not include architectural diagrams, concrete class/method/property inventories, package rules, or step-by-step implementation details; concrete implementation inventories belong only in tasks.md."
   design:
     - "Start with a high-level design (HLD) overview, followed by distinct architectural decisions with rationale and considered alternatives, and a brief verification strategy."
-    - "Focus on enduring principles, boundaries, and trade-offs; do not duplicate task checklists or file-by-file edit instructions."
+    - "When a design includes a diagram, use a Mermaid fenced code block (` ```mermaid `); do not use ASCII art diagrams."
+    - "Focus on enduring principles, boundaries, and trade-offs; do not include concrete class/method/property inventories or duplicate task checklists and file-by-file edit instructions; those details belong only in tasks.md."
   tasks:
     - "Make tasks self-contained and actionable so an implementor can execute the change using only tasks.md and design.md without prior conversation context."
-    - "Put concrete file paths, class/method changes, and targeted verification commands here rather than in proposal.md or design.md."
+    - "Put concrete file paths, class/method/property inventories, changes, and targeted verification commands here rather than in proposal.md or design.md."
 
 # Per-operation guidance (optional)
 # Add advisory guidance for how apply and archive work should be conducted.

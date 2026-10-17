@@ -35,29 +35,28 @@ class SessionRepositoryDataJpaTest {
 
     @Test
     void userAndSessionRoundTripRetainsAssociationAndLifecycleTimes() {
-        User user = new User(new UserId("user-1"), "alice", "Alice", CREATED_AT);
+        User user = new User(new UserId("user-1"), Username.from("Alice"), CREATED_AT);
         users.save(user);
         ClientSession session = session("session-1", user.id(), CREATED_AT, CREATED_AT.plusSeconds(30), null);
 
         sessions.save(session);
 
-        assertThat(users.findByNormalizedName("alice")).contains(user);
+        assertThat(users.findByUsername(Username.from("alice"))).contains(user);
         assertThat(sessions.findById(session.id())).contains(session);
     }
 
     @Test
     void normalizedUsernameHasDatabaseUniquenessConstraint() {
-        users.save(new User(new UserId("user-1"), "alice", "Alice", CREATED_AT));
-        users.save(new User(new UserId("user-2"), "alice", "alice", CREATED_AT.plusSeconds(1)));
+        users.save(new User(new UserId("user-1"), Username.from("Alice"), CREATED_AT));
+        users.save(new User(new UserId("user-2"), Username.from("alice"), CREATED_AT.plusSeconds(1)));
 
-        assertThatThrownBy(() -> users.findByNormalizedName("alice")).isInstanceOf(
-                DataIntegrityViolationException.class
-        );
+        assertThatThrownBy(() -> users.findByUsername(Username.from("alice")))
+            .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     void cleanupCandidatesIncludeExpiredAndInvalidatedSessionsOnly() {
-        User user = new User(new UserId("user-1"), "alice", "Alice", CREATED_AT);
+        User user = new User(new UserId("user-1"), Username.from("Alice"), CREATED_AT);
         users.save(user);
         Instant now = CREATED_AT.plus(Duration.ofDays(2));
         Duration timeout = Duration.ofHours(24);
@@ -76,7 +75,7 @@ class SessionRepositoryDataJpaTest {
 
     @Test
     void deletingSessionPreservesItsUser() {
-        User user = new User(new UserId("user-1"), "alice", "Alice", CREATED_AT);
+        User user = new User(new UserId("user-1"), Username.from("Alice"), CREATED_AT);
         users.save(user);
         ClientSession session = session("session-1", user.id(), CREATED_AT, CREATED_AT, null);
         sessions.save(session);
@@ -98,15 +97,15 @@ class SessionRepositoryDataJpaTest {
         SessionAcquisition second = transactions.acquire(Username.from("alice"));
 
         assertThat(second.user().id()).isEqualTo(first.user().id());
-        assertThat(first.user().displayName()).isEqualTo("Alice");
-        assertThat(second.user().displayName()).isEqualTo("Alice");
+        assertThat(first.user().username().displayName()).isEqualTo("Alice");
+        assertThat(second.user().username().displayName()).isEqualTo("Alice");
         assertThat(second.session().id()).isNotEqualTo(first.session().id());
         assertThat(first.session().userId()).isEqualTo(second.session().userId());
     }
 
     @Test
     void lockedUserCanBeLoadedAndUpdatedThroughTheRepository() {
-        User user = new User(new UserId("user-1"), "alice", "Alice", CREATED_AT);
+        User user = new User(new UserId("user-1"), Username.from("Alice"), CREATED_AT);
         users.save(user);
         ClientSession session = session("session-1", user.id(), CREATED_AT, CREATED_AT, null);
         sessions.save(session);

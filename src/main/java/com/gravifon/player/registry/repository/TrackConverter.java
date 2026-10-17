@@ -2,12 +2,16 @@ package com.gravifon.player.registry.repository;
 
 import com.gravifon.player.persistence.TrackEntity;
 import com.gravifon.player.persistence.TrackMetadataEntity;
+import com.gravifon.player.registry.identity.SourceNormalizer;
 import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackError;
 import com.gravifon.player.registry.model.TrackKind;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
+import java.net.URI;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -41,19 +45,19 @@ final class TrackConverter {
         return switch (kind) {
             case FILE -> new FileTrack(
                     entity.id(),
-                    metadata,
+                    new TrackMetadata(metadata),
                     entity.durationSeconds(),
                     new TrackState(entity.failing(), error),
-                    entity.relativePath(),
+                    Path.of(entity.relativePath()),
                     entity.format()
             );
             case STREAM -> new StreamTrack(
                     entity.id(),
-                    metadata,
+                    new TrackMetadata(metadata),
                     entity.durationSeconds(),
                     new TrackState(entity.failing(), error),
-                    entity.sourceUrl(),
-                    entity.streamUrl(),
+                    URI.create(entity.sourceUrl()),
+                    entity.streamUrl() == null ? null : URI.create(entity.streamUrl()),
                     instant(entity.expiresAfter())
             );
         };
@@ -66,11 +70,11 @@ final class TrackConverter {
         String streamUrl = null;
         Long expiresAfter = null;
         if (track instanceof FileTrack fileTrack) {
-            relativePath = fileTrack.relPath();
+            relativePath = SourceNormalizer.toCanonicalString(fileTrack.relPath());
             format = fileTrack.format();
         } else if (track instanceof StreamTrack streamTrack) {
-            sourceUrl = streamTrack.sourceUrl();
-            streamUrl = streamTrack.streamUrl();
+            sourceUrl = streamTrack.sourceUrl().toString();
+            streamUrl = streamTrack.streamUrl() == null ? null : streamTrack.streamUrl().toString();
             expiresAfter = epoch(streamTrack.expiresAfter());
         }
 
@@ -91,7 +95,7 @@ final class TrackConverter {
                 error == null ? null : error.reportedBy().name()
         );
         List<TrackMetadataEntity> metadata = new ArrayList<>();
-        track.metadata().forEach((key, values) -> {
+        track.metadata().values().forEach((key, values) -> {
             for (int order = 0; order < values.size(); order++) {
                 metadata.add(new TrackMetadataEntity(key, values.get(order), order));
             }

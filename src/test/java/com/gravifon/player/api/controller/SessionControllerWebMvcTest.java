@@ -49,7 +49,7 @@ class SessionControllerWebMvcTest {
 
     @Test
     void acquireIsAvailableWithoutCallerAndReturnsSessionDetails() throws Exception {
-        User user = new User(new UserId("user-1"), "alice", "Alice", NOW);
+        User user = new User(new UserId("user-1"), Username.from("Alice"), NOW);
         ClientSession session = new ClientSession(new ClientSessionId("session-1"), user.id(), NOW, NOW, null);
         when(properties.inactivityTimeout()).thenReturn(TIMEOUT);
         when(sessionService.acquire(Username.from(" Alice "))).thenReturn(new SessionAcquisition(user, session));

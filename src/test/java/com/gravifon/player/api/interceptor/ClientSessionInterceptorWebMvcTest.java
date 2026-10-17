@@ -16,6 +16,7 @@ import com.gravifon.player.api.error.ApiExceptionHandler;
 import com.gravifon.player.observability.CorrelationIdFilter;
 import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.service.TrackRegistry;
 import com.gravifon.player.session.model.Caller;
@@ -24,6 +25,7 @@ import com.gravifon.player.session.model.UserId;
 import com.gravifon.player.session.service.SessionService;
 import com.gravifon.player.streaming.AudioStreamingService;
 import com.gravifon.player.streaming.StreamProxy;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 import org.hamcrest.Matchers;
@@ -66,7 +68,14 @@ class ClientSessionInterceptorWebMvcTest {
 
     @Test
     void mediaQueryAuthenticatesRangeRequest() throws Exception {
-        Track track = new FileTrack("track-1", Map.of(), null, TrackState.healthy(), "track.mp3", "mp3");
+        Track track = new FileTrack(
+                "track-1",
+                new TrackMetadata(Map.of()),
+                null,
+                TrackState.healthy(),
+                Path.of("track.mp3"),
+                "mp3"
+        );
         when(sessionService.validateAndRenew(new ClientSessionId("session-1"))).thenReturn(Optional.of(CALLER));
         when(trackRegistry.getTrack("track-1")).thenReturn(track);
 
@@ -80,7 +89,14 @@ class ClientSessionInterceptorWebMvcTest {
 
     @Test
     void matchingHeaderAndMediaQueryAreAccepted() throws Exception {
-        Track track = new FileTrack("track-1", Map.of(), null, TrackState.healthy(), "track.mp3", "mp3");
+        Track track = new FileTrack(
+                "track-1",
+                new TrackMetadata(Map.of()),
+                null,
+                TrackState.healthy(),
+                Path.of("track.mp3"),
+                "mp3"
+        );
         when(sessionService.validateAndRenew(new ClientSessionId("session-1"))).thenReturn(Optional.of(CALLER));
         when(trackRegistry.getTrack("track-1")).thenReturn(track);
 

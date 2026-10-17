@@ -1,9 +1,12 @@
 package com.gravifon.player.registry.scan;
 
 import com.gravifon.player.registry.metadata.MetadataExtractor;
+import com.gravifon.player.registry.model.TrackMetadata;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -40,19 +43,33 @@ public class FileLibraryScanner implements LibraryScanner {
     }
 
     private ScanFile toScanFile(Path root, Path path) {
-        String relativePath = root.relativize(path).toString().replace('\\', '/');
+        Path relativePath = root.relativize(path);
+        Instant modifiedTime;
+        try {
+            modifiedTime = Files.readAttributes(path, BasicFileAttributes.class).lastModifiedTime().toInstant();
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to read file modification time: " + path, exception);
+        }
         try {
             MetadataExtractor.ExtractedMetadata metadata = metadataExtractor.extract(path);
             return new ScanFile(
                     relativePath,
+                    modifiedTime,
+                    new TrackMetadata(metadata.values()),
+                    metadata.durationSeconds(),
                     extension(path),
-                    metadata.readable(),
-                    metadata.values(),
-                    metadata.durationSeconds()
+                    metadata.readable()
             );
         } catch (RuntimeException exception) {
             log.warn("Unable to read file {} during scan: {}", path, exception.toString());
-            return new ScanFile(relativePath, extension(path), false, java.util.Map.of(), null);
+            return new ScanFile(
+                    relativePath,
+                    modifiedTime,
+                    new TrackMetadata(java.util.Map.of()),
+                    null,
+                    extension(path),
+                    false
+            );
         }
     }
 

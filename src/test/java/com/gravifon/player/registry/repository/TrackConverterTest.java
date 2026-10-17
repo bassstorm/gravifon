@@ -9,7 +9,10 @@ import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackError;
 import com.gravifon.player.registry.model.TrackErrorReporter;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
+import java.net.URI;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,14 +32,21 @@ class TrackConverterTest {
                         Instant.ofEpochSecond(1200),
                         TrackErrorReporter.SCAN
         );
-        Track track = new FileTrack("file-1", metadata, 180L, new TrackState(true, error), "music/song.mp3", "mp3");
+        Track track = new FileTrack(
+                "file-1",
+                new TrackMetadata(metadata),
+                180L,
+                new TrackState(true, error),
+                Path.of("music/song.mp3"),
+                "mp3"
+        );
 
         TrackEntity entity = TrackConverter.toEntity(track);
         Track converted = TrackConverter.toDomain(entity);
 
         assertThat(entity.metadata()).extracting(TrackMetadataEntity::key).containsExactly("TITLE", "TITLE", "ARTIST");
         assertThat(converted).isEqualTo(track);
-        assertThat(converted.metadata()).containsEntry("TITLE", List.of("First", "Second"));
+        assertThat(converted.metadata().values()).containsEntry("TITLE", List.of("First", "Second"));
         assertThat(converted.state().lastError()).isEqualTo(error);
         assertThat(entity.errorAt()).isEqualTo(1200L);
     }
@@ -45,11 +55,11 @@ class TrackConverterTest {
     void streamTrackRoundTripHandlesNullableExpiryAndErrorFields() {
         Track track = new StreamTrack(
                 "stream-1",
-                Map.of(),
+                new TrackMetadata(Map.of()),
                 null,
                 TrackState.healthy(),
-                "https://source.example/track",
-                "https://cdn.example/track",
+                URI.create("https://source.example/track"),
+                URI.create("https://cdn.example/track"),
                 null
         );
 
@@ -69,11 +79,11 @@ class TrackConverterTest {
         Instant expiry = Instant.ofEpochSecond(2400);
         Track track = new StreamTrack(
                 "stream-2",
-                Map.of(),
+                new TrackMetadata(Map.of()),
                 60L,
                 TrackState.healthy(),
-                "https://source.example/track",
-                "https://cdn.example/track",
+                URI.create("https://source.example/track"),
+                URI.create("https://cdn.example/track"),
                 expiry
         );
 

@@ -7,19 +7,19 @@ import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackError;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.repository.TrackRepository;
 import com.gravifon.player.registry.scan.LibraryScanCoordinator;
+import java.net.URI;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
@@ -46,16 +46,12 @@ public class TrackRegistry {
         return findTrackById(trackId).orElseThrow(() -> new EntityNotFoundException("Track not found: " + trackId));
     }
 
-    public Path resolveTrackPath(String trackId) {
-        Track track = getTrack(trackId);
-        if (track instanceof FileTrack fileTrack) {
-            return properties.musicRoot().resolve(fileTrack.relPath()).normalize();
-        }
-        throw new EntityNotFoundException("Track path not found: " + trackId);
+    public Path resolveTrackPath(FileTrack fileTrack) {
+        return properties.dir().resolve(fileTrack.relPath()).normalize();
     }
 
     @Transactional
-    public Track updateStream(String trackId, String streamUrl, Instant expiresAfter) {
+    public Track updateStream(String trackId, URI streamUrl, Instant expiresAfter) {
         Track track = getTrack(trackId);
         if (track instanceof StreamTrack streamTrack) {
             return trackRepository.save(streamTrack.withStream(streamUrl, expiresAfter));
@@ -76,7 +72,7 @@ public class TrackRegistry {
     }
 
     @Transactional
-    public Track updateMetadata(String trackId, Map<String, List<String>> metadata) {
+    public Track updateMetadata(String trackId, TrackMetadata metadata) {
         Track track = getTrack(trackId);
         Track updated = track.withMetadata(metadata);
         writeBackHandlers
@@ -89,12 +85,9 @@ public class TrackRegistry {
 
     @Transactional
     public Track reportFailure(String trackId, String kind, String message) {
-        if (!StringUtils.hasText(message) || kind != null && kind.isBlank()) {
-            throw new IllegalArgumentException("A failure report requires a non-blank message and kind");
-        }
+        TrackError error = TrackError.clientFailure(kind, message, Instant.now());
         Track track = getTrack(trackId);
-        TrackState state = new TrackState(true, TrackError.clientFailure(kind, message, Instant.now()));
-        return trackRepository.save(track.withState(state));
+        return trackRepository.save(track.withState(new TrackState(true, error)));
     }
 
     @Transactional

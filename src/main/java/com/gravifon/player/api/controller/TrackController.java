@@ -3,6 +3,7 @@ package com.gravifon.player.api.controller;
 import com.gravifon.player.api.model.TrackMetadataUpdateRequest;
 import com.gravifon.player.api.model.TrackResponse;
 import com.gravifon.player.api.model.TrackStateReportRequest;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.service.TrackRegistry;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -36,7 +37,7 @@ public class TrackController {
             @PathVariable String trackId,
             @Valid @RequestBody TrackMetadataUpdateRequest request
     ) {
-        return TrackResponse.from(trackRegistry.updateMetadata(trackId, request.metadata()));
+        return TrackResponse.from(trackRegistry.updateMetadata(trackId, new TrackMetadata(request.metadata())));
     }
 
     @PostMapping("/{trackId}/state")

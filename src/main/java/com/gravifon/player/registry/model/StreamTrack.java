@@ -1,18 +1,18 @@
 package com.gravifon.player.registry.model;
 
+import com.gravifon.player.registry.identity.SourceNormalizer;
+import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public record StreamTrack(
         String id,
-        Map<String, List<String>> metadata,
+        TrackMetadata metadata,
         Long durationSeconds,
         TrackState state,
-        String sourceUrl,
-        String streamUrl,
+        URI sourceUrl,
+        URI streamUrl,
         Instant expiresAfter
 ) implements Track {
     public StreamTrack {
@@ -20,9 +20,16 @@ public record StreamTrack(
         if (id.isBlank()) {
             throw new IllegalArgumentException("Track id cannot be blank");
         }
-        metadata = new TrackMetadata(metadata).values();
+        Objects.requireNonNull(metadata, "metadata");
         Objects.requireNonNull(state, "state");
-        Objects.requireNonNull(sourceUrl, "sourceUrl");
+        sourceUrl = SourceNormalizer.normalize(sourceUrl);
+        if (streamUrl != null
+                && (streamUrl.getScheme() == null
+                || streamUrl.getScheme().isBlank()
+                || streamUrl.getHost() == null
+                || streamUrl.getHost().isBlank())) {
+            throw new IllegalArgumentException("Stream URL must include a scheme and host");
+        }
     }
 
     @Override
@@ -39,7 +46,7 @@ public record StreamTrack(
         return streamUrl == null || expiresAfter != null && !expiresAfter.isAfter(now.plus(margin));
     }
 
-    public StreamTrack withStream(String newStreamUrl, Instant newExpiresAfter) {
+    public StreamTrack withStream(URI newStreamUrl, Instant newExpiresAfter) {
         return new StreamTrack(
                 id,
                 metadata,
@@ -57,7 +64,7 @@ public record StreamTrack(
     }
 
     @Override
-    public StreamTrack withMetadata(Map<String, List<String>> newMetadata) {
+    public StreamTrack withMetadata(TrackMetadata newMetadata) {
         return new StreamTrack(id, newMetadata, durationSeconds, state, sourceUrl, streamUrl, expiresAfter);
     }
 }

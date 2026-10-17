@@ -20,9 +20,6 @@ public class RefreshPlanner {
         Objects.requireNonNull(upcoming, "upcoming");
         Objects.requireNonNull(now, "now");
         Objects.requireNonNull(ahead, "ahead");
-        if (ahead.isNegative()) {
-            throw new IllegalArgumentException("Refresh look-ahead must not be negative");
-        }
         return upcoming
             .stream()
             .filter(StreamTrack.class::isInstance)

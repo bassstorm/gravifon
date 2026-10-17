@@ -4,7 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.StreamTrack;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
+import java.net.URI;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -22,7 +25,15 @@ class RefreshPlannerTest {
         StreamTrack insideWindow = streamTrack("inside", "https://stream", NOW.plus(AHEAD).minusSeconds(1));
         StreamTrack boundary = streamTrack("boundary", "https://stream", NOW.plus(AHEAD));
         StreamTrack expired = streamTrack("expired", "https://stream", NOW.minusSeconds(1));
-        FileTrack fileTrack = new FileTrack("file", Map.of(), null, TrackState.healthy(), "file.mp3", "mp3");
+        FileTrack fileTrack =
+                new FileTrack(
+                        "file",
+                        new TrackMetadata(Map.of()),
+                        null,
+                        TrackState.healthy(),
+                        Path.of("file.mp3"),
+                        "mp3"
+        );
 
         List<StreamTrack> due = planner.plan(List.of(notDue, insideWindow, boundary, expired, fileTrack), NOW, AHEAD);
 
@@ -44,11 +55,11 @@ class RefreshPlannerTest {
     private StreamTrack streamTrack(String id, String streamUrl, Instant expiresAfter) {
         return new StreamTrack(
                 id,
-                Map.of(),
+                new TrackMetadata(Map.of()),
                 null,
                 TrackState.healthy(),
-                "https://source/" + id,
-                streamUrl,
+                URI.create("https://source/" + id),
+                streamUrl == null ? null : URI.create(streamUrl),
                 expiresAfter
         );
     }

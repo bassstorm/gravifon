@@ -31,11 +31,8 @@ public class ClientSessionRepository {
 
     @Transactional(readOnly = true)
     public List<ClientSession> findCleanupCandidates(Instant now, Duration inactivityTimeout) {
-        if (now == null || inactivityTimeout == null || inactivityTimeout.isZero() || inactivityTimeout.isNegative()) {
-            throw new IllegalArgumentException("Cleanup time and positive inactivity timeout are required");
-        }
         return store
-            .findCleanupCandidates(now.minus(inactivityTimeout))
+            .findByInvalidatedAtIsNotNullOrLastActivityAtLessThanEqual(now.minus(inactivityTimeout))
             .stream()
             .map(ClientSessionConverter::toDomain)
             .toList();

@@ -1,7 +1,7 @@
 package com.gravifon.player.api.controller;
 
-import com.gravifon.player.registry.model.Track;
-import com.gravifon.player.registry.model.TrackKind;
+import com.gravifon.player.registry.model.FileTrack;
+import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.service.TrackRegistry;
 import com.gravifon.player.streaming.AudioStreamingService;
 import com.gravifon.player.streaming.StreamProxy;
@@ -26,13 +26,12 @@ public class AudioStreamingController {
     @GetMapping("/{trackId}")
     public void streamTrack(@PathVariable String trackId, HttpServletRequest request, HttpServletResponse response)
             throws IOException {
-        Track track = trackRegistry.getTrack(trackId);
-        if (track.kind() == TrackKind.STREAM) {
-            streamProxy.proxy(track, request, response);
-            return;
+        switch (trackRegistry.getTrack(trackId)) {
+            case StreamTrack streamTrack -> streamProxy.proxy(streamTrack, request, response);
+            case FileTrack fileTrack -> {
+                Path trackPath = trackRegistry.resolveTrackPath(fileTrack);
+                audioStreamingService.streamFile(trackPath, request, response);
+            }
         }
-        Path trackPath = trackRegistry.resolveTrackPath(trackId);
-
-        audioStreamingService.streamFile(trackPath, request, response);
     }
 }

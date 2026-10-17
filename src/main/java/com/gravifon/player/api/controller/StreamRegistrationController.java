@@ -4,6 +4,7 @@ import com.gravifon.player.api.model.StreamRegistrationRequest;
 import com.gravifon.player.api.model.StreamRegistrationResponse;
 import com.gravifon.player.registry.service.StreamTrackRegistrar;
 import jakarta.validation.Valid;
+import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,6 +22,11 @@ public class StreamRegistrationController {
     public ResponseEntity<StreamRegistrationResponse> registerSources(
             @Valid @RequestBody StreamRegistrationRequest request
     ) {
-        return ResponseEntity.ok(StreamRegistrationResponse.from(registrar.registerSources(request.sourceUrls())));
+        return ResponseEntity.ok(StreamRegistrationResponse.from(registrar.registerSources(request
+            .sourceUrls()
+            .stream()
+            .map(URI::create)
+            .toList()
+        )));
     }
 }

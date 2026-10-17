@@ -10,9 +10,11 @@ import static org.mockito.Mockito.when;
 
 import com.gravifon.player.config.StreamRefreshProperties;
 import com.gravifon.player.registry.model.StreamTrack;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.service.TrackRegistry;
 import java.io.IOException;
+import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -46,14 +48,14 @@ class StreamTrackRefresherTest {
             when(resolvers.resolverFor(track)).thenReturn(resolver);
             when(resolver.refreshStream(track))
                 .thenThrow(new IllegalStateException("temporary resolver failure"))
-                .thenReturn(new StreamResolver.ResolvedStream("https://fresh", updated.expiresAfter()));
-            when(registry.updateStream("t1", "https://fresh", updated.expiresAfter())).thenReturn(updated);
+                .thenReturn(new StreamResolver.ResolvedStream(URI.create("https://fresh"), updated.expiresAfter()));
+            when(registry.updateStream("t1", URI.create("https://fresh"), updated.expiresAfter())).thenReturn(updated);
             StreamTrackRefresher refresher =
                     refresher(resolvers, registry, properties(Duration.ofSeconds(1), 2), executor);
 
             assertThat(refresher.ensureValid(track, MARGIN)).isEqualTo(updated);
             verify(resolver, org.mockito.Mockito.times(2)).refreshStream(track);
-            verify(registry).updateStream("t1", "https://fresh", updated.expiresAfter());
+            verify(registry).updateStream("t1", URI.create("https://fresh"), updated.expiresAfter());
         }
     }
 
@@ -68,7 +70,10 @@ class StreamTrackRefresherTest {
             when(resolvers.resolverFor(track)).thenReturn(resolver);
             when(resolver.refreshStream(track)).thenAnswer(invocation -> {
                 Thread.sleep(TimeUnit.SECONDS.toMillis(1));
-                return new StreamResolver.ResolvedStream("https://late", Instant.now().plus(Duration.ofHours(1)));
+                return new StreamResolver.ResolvedStream(
+                        URI.create("https://late"),
+                        Instant.now().plus(Duration.ofHours(1))
+                );
             });
             StreamTrackRefresher refresher =
                     refresher(resolvers, registry, properties(Duration.ofMillis(20), 1), executor);
@@ -98,9 +103,9 @@ class StreamTrackRefresherTest {
                 if (!releaseResolver.await(1, TimeUnit.SECONDS)) {
                     throw new IOException("test resolver was not released");
                 }
-                return new StreamResolver.ResolvedStream("https://fresh", updated.expiresAfter());
+                return new StreamResolver.ResolvedStream(URI.create("https://fresh"), updated.expiresAfter());
             });
-            when(registry.updateStream("t1", "https://fresh", updated.expiresAfter())).thenReturn(updated);
+            when(registry.updateStream("t1", URI.create("https://fresh"), updated.expiresAfter())).thenReturn(updated);
             StreamTrackRefresher refresher =
                     refresher(resolvers, registry, properties(Duration.ofSeconds(1), 2), executor);
 
@@ -125,7 +130,11 @@ class StreamTrackRefresherTest {
             when(registry.findTrackById("t1")).thenReturn(Optional.of(track));
             when(resolvers.resolverFor(track)).thenReturn(resolver);
             when(resolver.refreshStream(track))
-                .thenReturn(new StreamResolver.ResolvedStream("https://too-short", Instant.now().plusSeconds(5)));
+                .thenReturn(
+                        new StreamResolver.ResolvedStream(URI.create("https://too-short"), Instant
+                            .now()
+                            .plusSeconds(5))
+                );
             StreamTrackRefresher refresher =
                     refresher(resolvers, registry, properties(Duration.ofSeconds(1), 1), executor);
 
@@ -175,6 +184,14 @@ class StreamTrackRefresherTest {
     }
 
     private StreamTrack track(String id, String streamUrl, Instant expiresAfter) {
-        return new StreamTrack(id, Map.of(), null, TrackState.healthy(), "https://source", streamUrl, expiresAfter);
+        return new StreamTrack(
+                id,
+                new TrackMetadata(Map.of()),
+                null,
+                TrackState.healthy(),
+                URI.create("https://source"),
+                streamUrl == null ? null : URI.create(streamUrl),
+                expiresAfter
+        );
     }
 }

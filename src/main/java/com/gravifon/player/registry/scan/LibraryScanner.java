@@ -1,21 +1,31 @@
 package com.gravifon.player.registry.scan;
 
+import com.gravifon.player.registry.model.TrackMetadata;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 
 public interface LibraryScanner {
     List<ScanFile> scan(Path root);
 
     record ScanFile(
-            String relativePath,
+            Path relativePath,
+            Instant modifiedTime,
+            TrackMetadata metadata,
+            Long durationSeconds,
             String format,
-            boolean readable,
-            Map<String, List<String>> metadata,
-            Long durationSeconds
+            boolean readable
     ) {
-        public ScanFile(String relativePath, String format, boolean readable, Long durationSeconds) {
-            this(relativePath, format, readable, Map.of(), durationSeconds);
+        public ScanFile(Path relativePath, Instant modifiedTime, TrackMetadata metadata, Long durationSeconds) {
+            this(relativePath, modifiedTime, metadata, durationSeconds, extension(relativePath), true);
+        }
+
+        private static String extension(Path path) {
+            String filename = path.getFileName().toString();
+            int dot = filename.lastIndexOf('.');
+            return dot > 0 && dot < filename.length() - 1
+                    ? filename.substring(dot + 1).toLowerCase(java.util.Locale.ROOT)
+                    : "";
         }
     }
 }

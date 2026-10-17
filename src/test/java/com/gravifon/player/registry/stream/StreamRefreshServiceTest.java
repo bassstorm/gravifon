@@ -6,9 +6,11 @@ import static org.mockito.Mockito.when;
 
 import com.gravifon.player.config.StreamRefreshProperties;
 import com.gravifon.player.registry.model.StreamTrack;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.service.TrackRegistry;
 import java.io.IOException;
+import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -64,11 +66,11 @@ class StreamRefreshServiceTest {
             StreamTrack nearlyExpired = track("t1", now.plus(Duration.ofMinutes(30)));
             StreamTrack refreshed = new StreamTrack(
                     "t1",
-                    Map.of(),
+                    new TrackMetadata(Map.of()),
                     null,
                     TrackState.healthy(),
                     nearlyExpired.sourceUrl(),
-                    "https://fresh",
+                    URI.create("https://fresh"),
                     now.plus(Duration.ofHours(2))
             );
             StreamResolverRegistry resolvers = mock(StreamResolverRegistry.class);
@@ -77,15 +79,17 @@ class StreamRefreshServiceTest {
             when(registry.findTrackById("t1")).thenReturn(Optional.of(nearlyExpired));
             when(resolvers.resolverFor(nearlyExpired)).thenReturn(resolver);
             when(resolver.refreshStream(nearlyExpired))
-                .thenReturn(new StreamResolver.ResolvedStream("https://fresh", refreshed.expiresAfter()));
-            when(registry.updateStream("t1", "https://fresh", refreshed.expiresAfter())).thenReturn(refreshed);
+                .thenReturn(new StreamResolver.ResolvedStream(URI.create("https://fresh"), refreshed.expiresAfter()));
+            when(registry.updateStream("t1", URI.create("https://fresh"), refreshed.expiresAfter())).thenReturn(
+                    refreshed
+            );
             StreamTrackRefresher refresher = new StreamTrackRefresher(resolvers, registry, properties, executor);
             StreamRefreshService service = new StreamRefreshService(new RefreshPlanner(), refresher, properties);
 
             service.refreshDue(List.of(nearlyExpired), now);
 
             verify(resolver).refreshStream(nearlyExpired);
-            verify(registry).updateStream("t1", "https://fresh", refreshed.expiresAfter());
+            verify(registry).updateStream("t1", URI.create("https://fresh"), refreshed.expiresAfter());
         }
     }
 
@@ -96,11 +100,11 @@ class StreamRefreshServiceTest {
     private StreamTrack track(String id, Instant expiresAfter) {
         return new StreamTrack(
                 id,
-                Map.of(),
+                new TrackMetadata(Map.of()),
                 null,
                 TrackState.healthy(),
-                "https://source/" + id,
-                "https://stream",
+                URI.create("https://source/" + id),
+                URI.create("https://stream"),
                 expiresAfter
         );
     }

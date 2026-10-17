@@ -9,9 +9,11 @@ import static org.mockito.Mockito.when;
 
 import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.stream.StreamResolutionException;
 import com.gravifon.player.registry.stream.StreamResolver;
 import com.gravifon.player.registry.stream.StreamResolverRegistry;
+import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -48,13 +50,13 @@ class StreamTrackRegistrarTest {
         StreamTrack second = streamTrack("two");
         when(persistence.registerResolvedTracks(any())).thenReturn(List.of(first, second, first));
 
-        List<Track> registered = registrar(resolver).registerSources(List.of(sourceUrl));
+        List<Track> registered = registrar(resolver).registerSources(List.of(uri(sourceUrl)));
 
         assertThat(registered).containsExactly(first, second, first);
         verify(persistence).registerResolvedTracks(resolvedTracks.capture());
         assertThat(resolvedTracks.getValue())
             .extracting(StreamTrack::metadata)
-            .extracting(metadata -> metadata.get("TITLE").getFirst())
+            .extracting(metadata -> metadata.values().get("TITLE").getFirst())
             .containsExactly("One", "Two", "One");
     }
 
@@ -65,7 +67,8 @@ class StreamTrackRegistrarTest {
         StreamResolver successful = new StubResolver(Map.of(firstSource, List.of(resolved(firstSource + "/1", "One"))));
         StreamResolver failing = new FailingResolver(failingSource);
 
-        assertThatThrownBy(() -> registrar(successful, failing).registerSources(List.of(firstSource, failingSource)))
+        assertThatThrownBy(() -> registrar(successful, failing)
+            .registerSources(List.of(uri(firstSource), uri(failingSource))))
             .isInstanceOf(StreamResolutionException.class)
             .hasMessage("Stream resolver failed to return valid tracks");
 
@@ -77,7 +80,7 @@ class StreamTrackRegistrarTest {
         String sourceUrl = "https://example.com/empty";
         StreamResolver resolver = new StubResolver(Map.of(sourceUrl, List.of()));
 
-        assertThatThrownBy(() -> registrar(resolver).registerSources(List.of(sourceUrl)))
+        assertThatThrownBy(() -> registrar(resolver).registerSources(List.of(uri(sourceUrl))))
             .isInstanceOf(StreamResolutionException.class);
 
         verify(persistence, never()).registerResolvedTracks(any());
@@ -85,10 +88,7 @@ class StreamTrackRegistrarTest {
 
     @Test
     void delegatesSchemeAndSupportDecisionsToResolverRegistry() {
-        assertThatThrownBy(() -> registrar().registerSources(List.of(" ")))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Source URLs must not be blank");
-        assertThatThrownBy(() -> registrar().registerSources(List.of("custom://unsupported.example/audio")))
+        assertThatThrownBy(() -> registrar().registerSources(List.of(uri("custom://unsupported.example/audio"))))
             .isInstanceOf(StreamResolverRegistry.NoStreamResolverException.class);
         verify(persistence, never()).registerResolvedTracks(any());
     }
@@ -101,7 +101,7 @@ class StreamTrackRegistrarTest {
         StreamTrack result = streamTrack("custom-track");
         when(persistence.registerResolvedTracks(any())).thenReturn(List.of(result));
 
-        assertThat(registrar(resolver).registerSources(List.of(sourceUrl))).containsExactly(result);
+        assertThat(registrar(resolver).registerSources(List.of(uri(sourceUrl)))).containsExactly(result);
         verify(persistence).registerResolvedTracks(any());
     }
 
@@ -112,7 +112,7 @@ class StreamTrackRegistrarTest {
         DataIntegrityViolationException collision = new DataIntegrityViolationException("duplicate track identity");
         when(persistence.registerResolvedTracks(any())).thenThrow(collision);
 
-        assertThatThrownBy(() -> registrar(resolver).registerSources(List.of(sourceUrl))).isSameAs(collision);
+        assertThatThrownBy(() -> registrar(resolver).registerSources(List.of(uri(sourceUrl)))).isSameAs(collision);
 
         verify(persistence).registerResolvedTracks(any());
         assertThat(resolver.resolutionCalls).isEqualTo(1);
@@ -127,7 +127,7 @@ class StreamTrackRegistrarTest {
         assertThatThrownBy(() -> registrar(
                 new StubResolver(Map.of(sourceUrl, List.of(resolved(sourceUrl + "/1", "One"))))
         )
-            .registerSources(List.of(sourceUrl)))
+            .registerSources(List.of(uri(sourceUrl))))
             .isSameAs(failure);
 
         verify(persistence).registerResolvedTracks(any());
@@ -138,16 +138,24 @@ class StreamTrackRegistrarTest {
     }
 
     private static StreamResolver.ResolvedTrack resolved(String sourceUrl, String title) {
-        return new StreamResolver.ResolvedTrack(sourceUrl, Map.of("TITLE", List.of(title)), 100L);
+        return new StreamResolver.ResolvedTrack(
+                URI.create(sourceUrl),
+                new TrackMetadata(Map.of("TITLE", List.of(title))),
+                100L
+        );
+    }
+
+    private static URI uri(String sourceUrl) {
+        return URI.create(sourceUrl);
     }
 
     private static StreamTrack streamTrack(String suffix) {
         return new StreamTrack(
                 suffix,
-                Map.of("TITLE", List.of(suffix)),
+                new TrackMetadata(Map.of("TITLE", List.of(suffix))),
                 100L,
                 com.gravifon.player.registry.model.TrackState.healthy(),
-                "https://example.com/" + suffix,
+                java.net.URI.create("https://example.com/" + suffix),
                 null,
                 null
         );
@@ -162,19 +170,19 @@ class StreamTrackRegistrarTest {
         }
 
         @Override
-        public boolean supports(String sourceUrl) {
-            return results.containsKey(sourceUrl);
+        public boolean supports(URI sourceUrl) {
+            return results.containsKey(sourceUrl.toString());
         }
 
         @Override
-        public List<ResolvedTrack> resolveTracks(String sourceUrl) {
+        public List<ResolvedTrack> resolveTracks(URI sourceUrl) {
             resolutionCalls++;
-            return results.get(sourceUrl);
+            return results.get(sourceUrl.toString());
         }
 
         @Override
-        public ResolvedStream refreshStream(Track track) {
-            return new ResolvedStream("https://cdn.example/audio", Instant.EPOCH.plusSeconds(60));
+        public ResolvedStream refreshStream(StreamTrack track) {
+            return new ResolvedStream(URI.create("https://cdn.example/audio"), Instant.EPOCH.plusSeconds(60));
         }
     }
 
@@ -186,18 +194,18 @@ class StreamTrackRegistrarTest {
         }
 
         @Override
-        public boolean supports(String candidate) {
-            return sourceUrl.equals(candidate);
+        public boolean supports(URI candidate) {
+            return sourceUrl.equals(candidate.toString());
         }
 
         @Override
-        public List<ResolvedTrack> resolveTracks(String ignored) {
+        public List<ResolvedTrack> resolveTracks(URI ignored) {
             throw new IllegalStateException("resolver failed");
         }
 
         @Override
-        public ResolvedStream refreshStream(Track track) {
-            return new ResolvedStream("https://cdn.example/audio", Instant.EPOCH.plusSeconds(60));
+        public ResolvedStream refreshStream(StreamTrack track) {
+            return new ResolvedStream(URI.create("https://cdn.example/audio"), Instant.EPOCH.plusSeconds(60));
         }
     }
 }

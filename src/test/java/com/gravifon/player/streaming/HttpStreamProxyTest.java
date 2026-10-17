@@ -12,6 +12,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 import com.gravifon.player.config.StreamRefreshProperties;
 import com.gravifon.player.registry.model.StreamTrack;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.stream.StreamTrackRefresher;
 import jakarta.servlet.ServletOutputStream;
@@ -20,6 +21,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -40,11 +42,11 @@ class HttpStreamProxyTest {
     private HttpStreamProxy proxy;
     private final StreamTrack track = new StreamTrack(
             "t1",
-            Map.of(),
+            new TrackMetadata(Map.of()),
             null,
             TrackState.healthy(),
-            "https://source",
-            "https://stream",
+            URI.create("https://source"),
+            URI.create("https://stream"),
             Instant.now().plusSeconds(60)
     );
 

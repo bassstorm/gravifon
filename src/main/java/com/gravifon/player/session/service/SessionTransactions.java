@@ -34,15 +34,8 @@ public class SessionTransactions {
         users.lockCreation();
         Instant now = clock.instant();
         User user = users
-            .findByNormalizedName(username.normalizedName())
-            .orElseGet(() -> users.save(
-                    new User(
-                            new UserId(UUID.randomUUID().toString()),
-                            username.normalizedName(),
-                            username.displayName(),
-                            now
-                    )
-            ));
+            .findByUsername(username)
+            .orElseGet(() -> users.save(new User(new UserId(UUID.randomUUID().toString()), username, now)));
         User lockedUser = users
             .lockById(user.id())
             .orElseThrow(() -> new IllegalStateException("Resolved user disappeared before session acquisition"));

@@ -1,17 +1,17 @@
-package com.gravifon.player.persistence;
+package com.gravifon.player.registry.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.gravifon.player.registry.identity.DefaultSourceUrlNormalizer;
 import com.gravifon.player.registry.identity.TrackIdentity;
 import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackError;
 import com.gravifon.player.registry.model.TrackErrorReporter;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.repository.TrackRepository;
-import com.gravifon.player.registry.service.StreamRegistrationPersistence;
+import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 @DataJpaTest
 @Import({TrackRepository.class, StreamRegistrationPersistence.class})
 class StreamRegistrationPersistenceDataJpaTest {
-    private static final DefaultSourceUrlNormalizer NORMALIZER = new DefaultSourceUrlNormalizer();
     @Autowired
     private TrackRepository tracks;
     @Autowired
@@ -38,24 +37,24 @@ class StreamRegistrationPersistenceDataJpaTest {
         String secondId = id("https://example.com/two");
         StreamTrack existing = new StreamTrack(
                 firstId,
-                Map.of("TITLE", List.of("Original title")),
+                new TrackMetadata(Map.of("TITLE", List.of("Original title"))),
                 120L,
                 new TrackState(
                         true,
                         new TrackError("UPSTREAM", "Unavailable", Instant.EPOCH, TrackErrorReporter.CLIENT)
                 ),
-                "https://example.com/one",
-                "https://cdn.example/one",
+                URI.create("https://example.com/one"),
+                URI.create("https://cdn.example/one"),
                 Instant.EPOCH.plusSeconds(60)
         );
         tracks.save(existing);
 
         StreamTrack changedCandidate = new StreamTrack(
                 firstId,
-                Map.of("TITLE", List.of("Replacement title")),
+                new TrackMetadata(Map.of("TITLE", List.of("Replacement title"))),
                 999L,
                 TrackState.healthy(),
-                "https://example.com/one?utm_source=changed",
+                URI.create("https://example.com/one?utm_source=changed"),
                 null,
                 null
         );
@@ -82,10 +81,18 @@ class StreamRegistrationPersistenceDataJpaTest {
     }
 
     private static String id(String sourceUrl) {
-        return TrackIdentity.forStream(sourceUrl, NORMALIZER);
+        return TrackIdentity.forStream(URI.create(sourceUrl));
     }
 
     private static StreamTrack streamTrack(String id, String sourceUrl, String title) {
-        return new StreamTrack(id, Map.of("TITLE", List.of(title)), 120L, TrackState.healthy(), sourceUrl, null, null);
+        return new StreamTrack(
+                id,
+                new TrackMetadata(Map.of("TITLE", List.of(title))),
+                120L,
+                TrackState.healthy(),
+                URI.create(sourceUrl),
+                null,
+                null
+        );
     }
 }

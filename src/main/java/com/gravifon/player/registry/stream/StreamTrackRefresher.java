@@ -42,8 +42,8 @@ public class StreamTrackRefresher {
     }
 
     public StreamTrack ensureValid(StreamTrack track, Duration margin) throws IOException {
-        if (track == null || margin == null || margin.isNegative()) {
-            throw new IllegalArgumentException("A stream track and non-negative refresh margin are required");
+        if (track == null || margin == null) {
+            throw new IllegalArgumentException("A stream track and refresh margin are required");
         }
         Instant now = Instant.now();
         if (!track.needsRefresh(now, margin)) {
@@ -147,7 +147,12 @@ public class StreamTrackRefresher {
     }
 
     private void validateResolvedStream(StreamResolver.ResolvedStream resolved) throws IOException {
-        if (resolved == null || !StringUtils.hasText(resolved.streamUrl())) {
+        if (resolved == null
+                || resolved.streamUrl() == null
+                || resolved.streamUrl().getScheme() == null
+                || resolved.streamUrl().getScheme().isBlank()
+                || resolved.streamUrl().getHost() == null
+                || resolved.streamUrl().getHost().isBlank()) {
             throw new IOException("Resolver returned no stream URL");
         }
         Instant minimumExpiry = Instant.now().plus(properties.refreshMinValidity());

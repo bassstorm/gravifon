@@ -53,7 +53,7 @@ class SessionServiceTest {
     void transactionWorkerCreatesUserAndSessionAtFixedServerTime() {
         Username username = Username.from(" Alice ");
         AtomicReference<User> createdUser = new AtomicReference<>();
-        when(users.findByNormalizedName("alice")).thenReturn(Optional.empty());
+        when(users.findByUsername(username)).thenReturn(Optional.empty());
         when(users.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             createdUser.set(user);
@@ -65,8 +65,8 @@ class SessionServiceTest {
 
         SessionAcquisition acquisition = worker.acquire(username);
 
-        assertThat(acquisition.user().normalizedName()).isEqualTo("alice");
-        assertThat(acquisition.user().displayName()).isEqualTo("Alice");
+        assertThat(acquisition.user().username().normalizedName()).isEqualTo("alice");
+        assertThat(acquisition.user().username().displayName()).isEqualTo("Alice");
         assertThat(acquisition.user().createdAt()).isEqualTo(NOW);
         assertThat(acquisition.session().createdAt()).isEqualTo(NOW);
         assertThat(acquisition.session().lastActivityAt()).isEqualTo(NOW);
@@ -76,8 +76,8 @@ class SessionServiceTest {
     @Test
     void transactionWorkerReusesUserAndCreatesDistinctSessions() {
         Username username = Username.from("alice");
-        User existing = new User(new UserId("user-1"), "alice", "Alice", NOW.minusSeconds(10));
-        when(users.findByNormalizedName("alice")).thenReturn(Optional.of(existing));
+        User existing = new User(new UserId("user-1"), Username.from("Alice"), NOW.minusSeconds(10));
+        when(users.findByUsername(username)).thenReturn(Optional.of(existing));
         when(users.lockById(existing.id())).thenReturn(Optional.of(existing));
         when(sessions.save(any(ClientSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
         SessionTransactions worker = worker();
@@ -94,8 +94,8 @@ class SessionServiceTest {
     @Test
     void transactionWorkerFailsIfResolvedUserCannotBeLocked() {
         Username username = Username.from("alice");
-        User existing = new User(new UserId("user-1"), "alice", "Alice", NOW);
-        when(users.findByNormalizedName("alice")).thenReturn(Optional.of(existing));
+        User existing = new User(new UserId("user-1"), Username.from("Alice"), NOW);
+        when(users.findByUsername(username)).thenReturn(Optional.of(existing));
         when(users.lockById(existing.id())).thenReturn(Optional.empty());
         SessionTransactions worker = worker();
 
@@ -107,8 +107,8 @@ class SessionServiceTest {
     @Test
     void transactionWorkerTakesUserAdmissionLockBeforeResolvingUser() {
         Username username = Username.from("alice");
-        User existing = new User(new UserId("user-1"), "alice", "Alice", NOW);
-        when(users.findByNormalizedName("alice")).thenReturn(Optional.of(existing));
+        User existing = new User(new UserId("user-1"), Username.from("Alice"), NOW);
+        when(users.findByUsername(username)).thenReturn(Optional.of(existing));
         when(users.lockById(existing.id())).thenReturn(Optional.of(existing));
         when(sessions.save(any(ClientSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
         SessionTransactions worker = worker();
@@ -117,7 +117,7 @@ class SessionServiceTest {
 
         InOrder order = inOrder(users);
         order.verify(users).lockCreation();
-        order.verify(users).findByNormalizedName("alice");
+        order.verify(users).findByUsername(username);
         order.verify(users).lockById(existing.id());
     }
 
@@ -147,7 +147,7 @@ class SessionServiceTest {
 
     @Test
     void validRequestLocksUserThenReReadsAndRenewsAtRequestInitiation() {
-        User user = new User(new UserId("user-1"), "alice", "Alice", NOW.minusSeconds(120));
+        User user = new User(new UserId("user-1"), Username.from("Alice"), NOW.minusSeconds(120));
         ClientSession session = session("session-1", user.id(), NOW.minusSeconds(120), NOW.minusSeconds(60), null);
         when(sessions.findById(session.id())).thenReturn(Optional.of(session), Optional.of(session));
         when(users.lockById(user.id())).thenReturn(Optional.of(user));
@@ -166,7 +166,7 @@ class SessionServiceTest {
 
     @Test
     void exactExpiryBoundaryCommitsInvalidationEventBeforeReturningInvalid() {
-        User user = new User(new UserId("user-1"), "alice", "Alice", NOW.minus(Duration.ofDays(2)));
+        User user = new User(new UserId("user-1"), Username.from("Alice"), NOW.minus(Duration.ofDays(2)));
         ClientSession expired =
                 session("session-1", user.id(), NOW.minus(Duration.ofDays(2)), NOW.minus(Duration.ofHours(24)), null);
         when(sessions.findById(expired.id())).thenReturn(Optional.of(expired), Optional.of(expired));
@@ -184,7 +184,7 @@ class SessionServiceTest {
 
     @Test
     void expireIfNecessaryRechecksUnderUserLockAndPublishesExpiration() {
-        User user = new User(new UserId("user-1"), "alice", "Alice", NOW.minus(Duration.ofDays(2)));
+        User user = new User(new UserId("user-1"), Username.from("Alice"), NOW.minus(Duration.ofDays(2)));
         ClientSession expired =
                 session("session-1", user.id(), NOW.minus(Duration.ofDays(2)), NOW.minus(Duration.ofHours(24)), null);
         when(sessions.findById(expired.id())).thenReturn(Optional.of(expired), Optional.of(expired));
@@ -204,7 +204,7 @@ class SessionServiceTest {
 
     @Test
     void expireIfNecessaryKeepsRecentSessionValid() {
-        User user = new User(new UserId("user-1"), "alice", "Alice", NOW.minusSeconds(120));
+        User user = new User(new UserId("user-1"), Username.from("Alice"), NOW.minusSeconds(120));
         ClientSession recent = session("session-1", user.id(), NOW.minusSeconds(120), NOW.minusSeconds(60), null);
         when(sessions.findById(recent.id())).thenReturn(Optional.of(recent), Optional.of(recent));
         when(users.lockById(user.id())).thenReturn(Optional.of(user));
@@ -218,7 +218,7 @@ class SessionServiceTest {
 
     @Test
     void invalidatedSessionCannotBeRenewedOrPublishAnotherInvalidation() {
-        User user = new User(new UserId("user-1"), "alice", "Alice", NOW.minusSeconds(120));
+        User user = new User(new UserId("user-1"), Username.from("Alice"), NOW.minusSeconds(120));
         ClientSession invalidated =
                 session("session-1", user.id(), NOW.minusSeconds(120), NOW.minusSeconds(60), NOW.minusSeconds(30));
         when(sessions.findById(invalidated.id())).thenReturn(Optional.of(invalidated), Optional.of(invalidated));
@@ -233,7 +233,7 @@ class SessionServiceTest {
 
     @Test
     void explicitInvalidationLocksUserAndPublishesTheLifecycleEvent() {
-        User user = new User(new UserId("user-1"), "alice", "Alice", NOW.minusSeconds(120));
+        User user = new User(new UserId("user-1"), Username.from("Alice"), NOW.minusSeconds(120));
         ClientSession session = session("session-1", user.id(), NOW.minusSeconds(120), NOW.minusSeconds(60), null);
         when(users.lockById(user.id())).thenReturn(Optional.of(user));
         when(sessions.findById(session.id())).thenReturn(Optional.of(session));

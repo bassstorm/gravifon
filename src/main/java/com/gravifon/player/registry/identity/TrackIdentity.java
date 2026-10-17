@@ -1,5 +1,6 @@
 package com.gravifon.player.registry.identity;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -11,17 +12,11 @@ public final class TrackIdentity {
     }
 
     public static String forFile(Path relativePath) {
-        if (relativePath == null) {
-            throw new IllegalArgumentException("Relative path is required");
-        }
-        return sha1("file:" + relativePath.toString().replace('\\', '/'));
+        return sha1("file:" + SourceNormalizer.toCanonicalString(relativePath));
     }
 
-    public static String forStream(String sourceUrl, SourceUrlNormalizer normalizer) {
-        if (normalizer == null) {
-            throw new IllegalArgumentException("Source URL normalizer is required");
-        }
-        return sha1("stream:" + normalizer.normalize(sourceUrl));
+    public static String forStream(URI sourceUrl) {
+        return sha1("stream:" + SourceNormalizer.normalize(sourceUrl));
     }
 
     private static String sha1(String value) {

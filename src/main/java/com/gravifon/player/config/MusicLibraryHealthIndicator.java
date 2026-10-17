@@ -25,7 +25,7 @@ public class MusicLibraryHealthIndicator implements HealthIndicator {
             MusicLibraryProbe probe,
             @Qualifier("applicationTaskExecutor") Executor executor
     ) {
-        this.musicRoot = properties.musicRoot();
+        this.musicRoot = properties.dir();
         this.probe = probe;
         this.executor = executor;
     }

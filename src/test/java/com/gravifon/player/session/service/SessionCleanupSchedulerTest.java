@@ -15,6 +15,7 @@ import com.gravifon.player.session.model.ClientSessionId;
 import com.gravifon.player.session.model.SessionInvalidated;
 import com.gravifon.player.session.model.User;
 import com.gravifon.player.session.model.UserId;
+import com.gravifon.player.session.model.Username;
 import com.gravifon.player.session.repository.ClientSessionRepository;
 import com.gravifon.player.session.repository.UserRepository;
 import java.time.Clock;
@@ -78,7 +79,7 @@ class SessionCleanupSchedulerTest {
 
     @Test
     void cleanupWorkerRechecksCandidateAfterWaitingForUserLock() {
-        User user = new User(new UserId("user-1"), "alice", "Alice", NOW.minus(Duration.ofDays(2)));
+        User user = new User(new UserId("user-1"), Username.from("Alice"), NOW.minus(Duration.ofDays(2)));
         ClientSession candidate = session("session-1", user.id().value(), NOW.minus(TIMEOUT));
         ClientSession renewed = session("session-1", user.id().value(), NOW.minusSeconds(10));
         when(sessions.findById(candidate.id())).thenReturn(Optional.of(candidate), Optional.of(renewed));
@@ -93,7 +94,7 @@ class SessionCleanupSchedulerTest {
 
     @Test
     void cleanupWorkerPublishesExpirationBeforeDeletingOnlyTheSession() {
-        User user = new User(new UserId("user-1"), "alice", "Alice", NOW.minus(Duration.ofDays(2)));
+        User user = new User(new UserId("user-1"), Username.from("Alice"), NOW.minus(Duration.ofDays(2)));
         ClientSession expired = session("session-1", user.id().value(), NOW.minus(TIMEOUT));
         when(sessions.findById(expired.id())).thenReturn(Optional.of(expired), Optional.of(expired));
         when(users.lockById(user.id())).thenReturn(Optional.of(user));

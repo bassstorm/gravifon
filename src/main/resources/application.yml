@@ -40,18 +40,18 @@ management:
 
 gravifon:
   library:
-    music-root: ${GRAVIFON_LIBRARY_DIR:/music}
-    startup-scan-enabled: ${GRAVIFON_STARTUP_SCAN_ENABLED:true}
-  config-dir: ${GRAVIFON_CONFIG_DIR:/config}
-  streams:
-    refresh-ahead: ${GRAVIFON_STREAM_REFRESH_AHEAD:1h}
-    refresh-cron: ${GRAVIFON_STREAM_REFRESH_CRON:0 */10 * * * *}
-    refresh-upcoming-count: ${GRAVIFON_STREAM_REFRESH_UPCOMING_COUNT:10}
-    refresh-min-validity: ${GRAVIFON_STREAM_REFRESH_MIN_VALIDITY:1m}
-    refresh-timeout: ${GRAVIFON_STREAM_REFRESH_TIMEOUT:5s}
-    refresh-max-attempts: ${GRAVIFON_STREAM_REFRESH_MAX_ATTEMPTS:2}
-    proxy-connect-timeout: ${GRAVIFON_STREAM_PROXY_CONNECT_TIMEOUT:5s}
-    proxy-read-timeout: ${GRAVIFON_STREAM_PROXY_READ_TIMEOUT:15s}
-  sessions:
-    inactivity-timeout: ${GRAVIFON_SESSION_INACTIVITY_TIMEOUT:24h}
-    cleanup-cron: "${GRAVIFON_SESSION_CLEANUP_CRON:0 0 * * * *}"
+    dir: /music
+    startup-scan-enabled: true
+  config-dir: /config
+  stream:
+    refresh-ahead: 1h
+    refresh-cron: "0 */10 * * * *"
+    refresh-upcoming-count: 10
+    refresh-min-validity: 1m
+    refresh-timeout: 5s
+    refresh-max-attempts: 2
+    proxy-connect-timeout: 5s
+    proxy-read-timeout: 15s
+  session:
+    inactivity-timeout: 24h
+    cleanup-cron: "0 0 * * * *"

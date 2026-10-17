@@ -21,6 +21,7 @@ class TrackMetadataTest {
         values.put("ARTIST", List.of("Artist"));
 
         assertThat(metadata.values()).containsOnlyKeys("TITLE").containsEntry("TITLE", List.of("Song"));
+        assertThat(metadata).isEqualTo(new TrackMetadata(Map.of("TITLE", List.of("Song"))));
         assertThatThrownBy(() -> metadata.values().put("ARTIST", List.of("Artist")))
             .isInstanceOf(UnsupportedOperationException.class);
         assertThatThrownBy(() -> metadata.values().get("TITLE").add("Changed"))

@@ -27,7 +27,7 @@ public class DiagnosticMountProbeRunner {
 
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
-        Path root = properties.musicRoot().toAbsolutePath().normalize();
+        Path root = properties.dir().toAbsolutePath().normalize();
         executor.execute(() -> probe(root));
     }
 

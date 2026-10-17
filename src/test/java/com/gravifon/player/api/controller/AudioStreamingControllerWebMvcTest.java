@@ -12,7 +12,7 @@ import com.gravifon.player.api.interceptor.ClientSessionInterceptor;
 import com.gravifon.player.error.EntityNotFoundException;
 import com.gravifon.player.observability.CorrelationIdFilter;
 import com.gravifon.player.registry.model.FileTrack;
-import com.gravifon.player.registry.model.Track;
+import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.service.TrackRegistry;
 import com.gravifon.player.streaming.AudioStreamingService;
@@ -61,8 +61,9 @@ class AudioStreamingControllerWebMvcTest {
     @Test
     void streamTrack_withoutRange_returnsWholeResource() throws Exception {
         Path track = copyFixture("amber-signal.mp3");
-        when(trackRegistry.getTrack("t1")).thenReturn(fileTrack("t1", "mp3"));
-        when(trackRegistry.resolveTrackPath("t1")).thenReturn(track);
+        FileTrack fileTrack = fileTrack("t1", "mp3");
+        when(trackRegistry.getTrack("t1")).thenReturn(fileTrack);
+        when(trackRegistry.resolveTrackPath(fileTrack)).thenReturn(track);
         byte[] expectedBytes = Files.readAllBytes(track);
 
         mockMvc
@@ -76,8 +77,9 @@ class AudioStreamingControllerWebMvcTest {
     @Test
     void streamTrack_flacUsesAudioFlacContentType() throws Exception {
         Path track = copyFixture("blue-current.flac");
-        when(trackRegistry.getTrack("t1")).thenReturn(fileTrack("t1", "flac"));
-        when(trackRegistry.resolveTrackPath("t1")).thenReturn(track);
+        FileTrack fileTrack = fileTrack("t1", "flac");
+        when(trackRegistry.getTrack("t1")).thenReturn(fileTrack);
+        when(trackRegistry.resolveTrackPath(fileTrack)).thenReturn(track);
 
         mockMvc
             .perform(get("/api/stream/t1"))
@@ -88,8 +90,9 @@ class AudioStreamingControllerWebMvcTest {
     @Test
     void streamTrack_withClosedRange_returnsPartialContent() throws Exception {
         Path track = copyFixture("amber-signal.mp3");
-        when(trackRegistry.getTrack("t1")).thenReturn(fileTrack("t1", "mp3"));
-        when(trackRegistry.resolveTrackPath("t1")).thenReturn(track);
+        FileTrack fileTrack = fileTrack("t1", "mp3");
+        when(trackRegistry.getTrack("t1")).thenReturn(fileTrack);
+        when(trackRegistry.resolveTrackPath(fileTrack)).thenReturn(track);
         byte[] expectedBytes = Files.readAllBytes(track);
 
         mockMvc
@@ -102,8 +105,9 @@ class AudioStreamingControllerWebMvcTest {
     @Test
     void streamTrack_withOpenEndedRange_returnsPartialContentToEnd() throws Exception {
         Path track = copyFixture("green-air.ogg");
-        when(trackRegistry.getTrack("t2")).thenReturn(fileTrack("t2", "ogg"));
-        when(trackRegistry.resolveTrackPath("t2")).thenReturn(track);
+        FileTrack fileTrack = fileTrack("t2", "ogg");
+        when(trackRegistry.getTrack("t2")).thenReturn(fileTrack);
+        when(trackRegistry.resolveTrackPath(fileTrack)).thenReturn(track);
         byte[] expectedBytes = Files.readAllBytes(track);
 
         mockMvc
@@ -122,8 +126,9 @@ class AudioStreamingControllerWebMvcTest {
     @Test
     void streamTrack_withUnsatisfiableRange_returns416() throws Exception {
         Path track = copyFixture("blue-current.flac");
-        when(trackRegistry.getTrack("t3")).thenReturn(fileTrack("t3", "flac"));
-        when(trackRegistry.resolveTrackPath("t3")).thenReturn(track);
+        FileTrack fileTrack = fileTrack("t3", "flac");
+        when(trackRegistry.getTrack("t3")).thenReturn(fileTrack);
+        when(trackRegistry.resolveTrackPath(fileTrack)).thenReturn(track);
         long fileLength = Files.size(track);
 
         mockMvc
@@ -137,8 +142,9 @@ class AudioStreamingControllerWebMvcTest {
     @Test
     void streamTrack_withMultipartRange_returns416() throws Exception {
         Path track = copyFixture("blue-current.flac");
-        when(trackRegistry.getTrack("t3")).thenReturn(fileTrack("t3", "flac"));
-        when(trackRegistry.resolveTrackPath("t3")).thenReturn(track);
+        FileTrack fileTrack = fileTrack("t3", "flac");
+        when(trackRegistry.getTrack("t3")).thenReturn(fileTrack);
+        when(trackRegistry.resolveTrackPath(fileTrack)).thenReturn(track);
         long fileLength = Files.size(track);
 
         mockMvc
@@ -168,7 +174,14 @@ class AudioStreamingControllerWebMvcTest {
         return track;
     }
 
-    private Track fileTrack(String id, String format) {
-        return new FileTrack(id, java.util.Map.of(), null, TrackState.healthy(), id + "." + format, format);
+    private FileTrack fileTrack(String id, String format) {
+        return new FileTrack(
+                id,
+                new TrackMetadata(java.util.Map.of()),
+                null,
+                TrackState.healthy(),
+                Path.of(id + "." + format),
+                format
+        );
     }
 }

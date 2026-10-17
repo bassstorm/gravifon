@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 @Validated
-@ConfigurationProperties(prefix = "gravifon.streams")
+@ConfigurationProperties(prefix = "gravifon.stream")
 public record StreamRefreshProperties(
         @NotNull @DurationMin(nanos = 1) Duration refreshAhead,
         @Min(1) int refreshUpcomingCount,

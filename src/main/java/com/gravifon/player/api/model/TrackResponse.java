@@ -23,16 +23,12 @@ public record TrackResponse(
     public static TrackResponse from(Track track) {
         return switch (track) {
             case FileTrack file -> {
-                String filename =
-                        file.relPath() == null ? null : java.nio.file.Path
-                    .of(file.relPath())
-                    .getFileName()
-                    .toString();
+                String filename = file.relPath().getFileName().toString();
                 yield new TrackResponse(
                         file.id(),
                         filename,
                         file.kind(),
-                        file.metadata(),
+                        file.metadata().values(),
                         file.format(),
                         file.durationSeconds(),
                         file.state(),
@@ -44,11 +40,11 @@ public record TrackResponse(
                     stream.id(),
                     null,
                     stream.kind(),
-                    stream.metadata(),
+                    stream.metadata().values(),
                     null,
                     stream.durationSeconds(),
                     stream.state(),
-                    stream.sourceUrl(),
+                    stream.sourceUrl().toString(),
                     stream.expiresAfter()
             );
         };

@@ -2,13 +2,11 @@ package com.gravifon.player.streaming;
 
 import com.gravifon.player.config.StreamRefreshProperties;
 import com.gravifon.player.registry.model.StreamTrack;
-import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.stream.StreamTrackRefresher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
@@ -34,16 +32,13 @@ public class HttpStreamProxy implements StreamProxy {
     }
 
     @Override
-    public void proxy(Track track, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        if (!(track instanceof StreamTrack streamTrack)) {
-            throw new IllegalArgumentException("Cannot proxy non-stream track: " + track.id());
-        }
-        streamTrack = refresher.ensureValid(streamTrack, refreshProperties.refreshMinValidity());
+    public void proxy(StreamTrack track, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        StreamTrack streamTrack = refresher.ensureValid(track, refreshProperties.refreshMinValidity());
         String range = request.getHeader(HttpHeaders.RANGE);
 
         client
             .get()
-            .uri(URI.create(streamTrack.streamUrl()))
+            .uri(streamTrack.streamUrl())
             .headers(headers -> {
                 if (StringUtils.hasText(range)) {
                     headers.set(HttpHeaders.RANGE, range);

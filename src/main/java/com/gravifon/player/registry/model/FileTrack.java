@@ -1,15 +1,15 @@
 package com.gravifon.player.registry.model;
 
-import java.util.List;
-import java.util.Map;
+import com.gravifon.player.registry.identity.SourceNormalizer;
+import java.nio.file.Path;
 import java.util.Objects;
 
 public record FileTrack(
         String id,
-        Map<String, List<String>> metadata,
+        TrackMetadata metadata,
         Long durationSeconds,
         TrackState state,
-        String relPath,
+        Path relPath,
         String format
 ) implements Track {
     public FileTrack {
@@ -17,9 +17,9 @@ public record FileTrack(
         if (id.isBlank()) {
             throw new IllegalArgumentException("Track id cannot be blank");
         }
-        metadata = new TrackMetadata(metadata).values();
+        Objects.requireNonNull(metadata, "metadata");
         Objects.requireNonNull(state, "state");
-        Objects.requireNonNull(relPath, "relPath");
+        relPath = SourceNormalizer.normalize(relPath);
     }
 
     @Override
@@ -33,7 +33,7 @@ public record FileTrack(
     }
 
     @Override
-    public FileTrack withMetadata(Map<String, List<String>> newMetadata) {
+    public FileTrack withMetadata(TrackMetadata newMetadata) {
         return new FileTrack(id, newMetadata, durationSeconds, state, relPath, format);
     }
 }
