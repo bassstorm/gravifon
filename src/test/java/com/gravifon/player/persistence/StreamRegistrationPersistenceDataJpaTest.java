@@ -10,7 +10,6 @@ import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackError;
 import com.gravifon.player.registry.model.TrackErrorReporter;
 import com.gravifon.player.registry.model.TrackState;
-import com.gravifon.player.registry.repository.JpaTrackRepository;
 import com.gravifon.player.registry.repository.TrackRepository;
 import com.gravifon.player.registry.service.StreamRegistrationPersistence;
 import java.time.Instant;
@@ -25,7 +24,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @DataJpaTest
-@Import({JpaTrackRepository.class, StreamRegistrationPersistence.class})
+@Import({TrackRepository.class, StreamRegistrationPersistence.class})
 class StreamRegistrationPersistenceDataJpaTest {
     private static final DefaultSourceUrlNormalizer NORMALIZER = new DefaultSourceUrlNormalizer();
     @Autowired

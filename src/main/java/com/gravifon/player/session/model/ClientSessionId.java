@@ -1,9 +1,8 @@
 package com.gravifon.player.session.model;
 
 import java.util.Objects;
-import org.jmolecules.ddd.types.Identifier;
 
-public record ClientSessionId(String value) implements Identifier {
+public record ClientSessionId(String value) {
     public ClientSessionId {
         Objects.requireNonNull(value, "value");
         if (value.isBlank()) {

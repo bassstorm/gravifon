@@ -6,7 +6,7 @@ import java.util.Objects;
 
 public record FileTrack(
         String id,
-        TrackMetadata trackMetadata,
+        Map<String, List<String>> metadata,
         Long durationSeconds,
         TrackState state,
         String relPath,
@@ -14,31 +14,12 @@ public record FileTrack(
 ) implements Track {
     public FileTrack {
         Objects.requireNonNull(id, "id");
-        Objects.requireNonNull(trackMetadata, "trackMetadata");
+        if (id.isBlank()) {
+            throw new IllegalArgumentException("Track id cannot be blank");
+        }
+        metadata = new TrackMetadata(metadata).values();
         Objects.requireNonNull(state, "state");
         Objects.requireNonNull(relPath, "relPath");
-    }
-
-    public FileTrack(
-            String id,
-            Map<String, List<String>> metadata,
-            Long durationSeconds,
-            TrackState state,
-            String relPath,
-            String format
-    ) {
-        this(id, new TrackMetadata(metadata), durationSeconds, state, relPath, format);
-    }
-
-    public FileTrack(
-            TrackId trackId,
-            Map<String, List<String>> metadata,
-            Long durationSeconds,
-            TrackState state,
-            String relPath,
-            String format
-    ) {
-        this(trackId.value(), metadata, durationSeconds, state, relPath, format);
     }
 
     @Override
@@ -48,11 +29,11 @@ public record FileTrack(
 
     @Override
     public FileTrack withState(TrackState newState) {
-        return new FileTrack(id, trackMetadata, durationSeconds, newState, relPath, format);
+        return new FileTrack(id, metadata, durationSeconds, newState, relPath, format);
     }
 
     @Override
-    public FileTrack withMetadata(TrackMetadata newMetadata) {
+    public FileTrack withMetadata(Map<String, List<String>> newMetadata) {
         return new FileTrack(id, newMetadata, durationSeconds, state, relPath, format);
     }
 }

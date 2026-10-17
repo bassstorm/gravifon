@@ -15,13 +15,11 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.jmolecules.architecture.onion.simplified.ApplicationRing;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-@ApplicationRing
 @Service
 @RequiredArgsConstructor
 public class SessionTransactions {

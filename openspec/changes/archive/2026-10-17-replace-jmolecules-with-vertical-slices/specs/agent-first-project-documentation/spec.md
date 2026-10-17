@@ -6,7 +6,7 @@ The system SHALL document architecture, coding/testing principles, and agent wor
 #### Scenario: New contributor onboarding
 - **WHEN** an agent or developer reads project guidance docs
 - **THEN** they understand the vertical package slices (`session`, `registry`, `playlist`, `playback`, `streaming`), their one-way dependency rules, cross-slice event/provider patterns, and implementation/testing standards
-- **AND** `README.md` presents a high-level architectural overview while `AGENTS.md` defines concrete package, persistence, and verification rules
+- **AND** `README.md` presents a high-level architectural overview with Mermaid diagrams while `AGENTS.md` defines concrete package, repository/converter, persistence, and verification rules
 
 ### Requirement: Framework capabilities are preferred over bespoke code
 The system MUST document that contributors reuse capabilities already provided by the application framework and its libraries before writing custom code, avoid redundant 1:1 pass-through interfaces under YAGNI, and do not re-verify framework guarantees in tests.

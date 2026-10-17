@@ -16,12 +16,10 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
-import org.jmolecules.architecture.onion.simplified.ApplicationRing;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-@ApplicationRing
 @Slf4j
 @Service
 public class StreamTrackRefresher {

@@ -5,10 +5,8 @@ import com.gravifon.player.session.model.ClientSessionId;
 import com.gravifon.player.session.model.Username;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.jmolecules.architecture.onion.simplified.ApplicationRing;
 import org.springframework.stereotype.Service;
 
-@ApplicationRing
 @Service
 @RequiredArgsConstructor
 public class SessionService {

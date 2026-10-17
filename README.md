@@ -4,18 +4,84 @@ Local-network audio player
 
 ## Architecture
 
-```
-API client (not included)
-  │  REST + Streaming  │  CorrelationId header
-  ▼                    ▼
-Spring Boot app
-  ├── /api/sessions               – per-instance session acquisition/invalidation
-  ├── /api/tracks                 – shared track registry
-  ├── /api/tracks/{id}            – track metadata/state
-  └── /api/stream/{id}            – file and range streaming
+```mermaid
+flowchart LR
+    client["API client (not included)"]
+    app["Spring Boot app"]
+    sessions["/api/sessions<br/>session acquisition and invalidation"]
+    tracks["/api/tracks<br/>shared track registry"]
+    track["/api/tracks/{id}<br/>track metadata and state"]
+    audio["/api/stream/{id}<br/>file and range streaming"]
+
+    client -->|REST + CorrelationId| app
+    client -->|Streaming + CorrelationId| app
+    app --> sessions
+    app --> tracks
+    app --> track
+    app --> audio
 ```
 
-**Bounded contexts:** `registry` → `streaming` → `api`
+The server is organized as vertical slices with one-way dependencies. Each
+slice keeps its domain models, application behavior, and repository code
+together; `api` and `persistence` are shared boundary packages.
+
+```mermaid
+flowchart TD
+    api["api<br/>HTTP controllers, DTOs, filters"]
+    session["session<br/>users and client sessions"]
+    registry["registry<br/>shared tracks and scanning"]
+    playlist["playlist<br/>playlists and entries"]
+    playback["playback<br/>context, queue, protocol"]
+    streaming["streaming<br/>audio delivery and refresh"]
+    persistence["persistence<br/>JPA entities and Spring Data stores"]
+    config["config"]
+    error["error"]
+    observability["observability"]
+
+    api --> session
+    api --> registry
+    api --> playlist
+    api --> playback
+    api --> streaming
+    api --> config
+    api --> error
+    api --> observability
+
+    streaming --> playback
+    streaming --> registry
+    streaming --> session
+    streaming --> config
+    streaming --> error
+    playback --> playlist
+    playback --> registry
+    playback --> session
+    playback --> persistence
+    playback --> config
+    playback --> error
+    playlist --> registry
+    playlist --> session
+    playlist --> persistence
+    playlist --> config
+    playlist --> error
+    registry --> persistence
+    registry --> config
+    registry --> error
+    session --> persistence
+    session --> config
+    session --> error
+```
+
+`session` owns users and client sessions; `registry` owns shared file and
+stream tracks; `playlist` owns playlists and entries; `playback` owns playback
+context, queue, and protocol; `streaming` delivers audio and refreshes upcoming
+stream URLs. `api` translates HTTP requests and responses, while `persistence`
+encapsulates JPA entities and Spring Data stores.
+
+Slices communicate through synchronous Spring events when another slice must
+react atomically within the caller's transaction. Coordinators use
+multi-bean `List<Port>` injection to aggregate contributions from zero or more
+slices without depending on those slices directly; ordered strategy lists
+select the first provider that supports a request.
 
 This phase retains shared tracks and audio delivery. Track operations include
 `GET /api/tracks`, `GET /api/tracks/{id}`, `PATCH /api/tracks/{id}/metadata`,

@@ -9,10 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.jmolecules.architecture.onion.simplified.ApplicationRing;
 import org.springframework.stereotype.Component;
 
-@ApplicationRing
 @Component
 public class ScanReconciler {
     public List<Decision> reconcile(

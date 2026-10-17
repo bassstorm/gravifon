@@ -1,6 +1,7 @@
 package com.gravifon.player.registry.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -9,6 +10,22 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class TrackPolymorphismTest {
+    @Test
+    void tracksRequireNonBlankIds() {
+        assertThatThrownBy(() -> new FileTrack(null, Map.of(), 1L, TrackState.healthy(), "song.mp3", "mp3"))
+            .isInstanceOf(NullPointerException.class)
+            .hasMessage("id");
+        assertThatThrownBy(() -> new FileTrack(" ", Map.of(), 1L, TrackState.healthy(), "song.mp3", "mp3"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Track id cannot be blank");
+        assertThatThrownBy(() -> new StreamTrack(null, Map.of(), 1L, TrackState.healthy(), "source", null, null))
+            .isInstanceOf(NullPointerException.class)
+            .hasMessage("id");
+        assertThatThrownBy(() -> new StreamTrack(" ", Map.of(), 1L, TrackState.healthy(), "source", null, null))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Track id cannot be blank");
+    }
+
     @Test
     void fileTrackHasExplicitPropertiesAndWithers() {
         FileTrack track =
@@ -22,8 +39,6 @@ class TrackPolymorphismTest {
         );
 
         assertThat(track.id()).isEqualTo("f1");
-        assertThat(track.trackId()).isEqualTo(TrackId.of("f1"));
-        assertThat(track.getId()).isEqualTo(TrackId.of("f1"));
         assertThat(track.kind()).isEqualTo(TrackKind.FILE);
         assertThat(track.relPath()).isEqualTo("music/song.mp3");
         assertThat(track.format()).isEqualTo("mp3");
@@ -90,11 +105,10 @@ class TrackPolymorphismTest {
                         "music/song.mp3",
                         "mp3"
         );
-        TrackMetadata metadata = new TrackMetadata(Map.of("ARTIST", List.of("Artist")));
+        Map<String, List<String>> metadata = Map.of("ARTIST", List.of("Artist"));
 
         FileTrack updated = original.withMetadata(metadata);
 
-        assertThat(updated.trackMetadata()).isSameAs(metadata);
         assertThat(updated.metadata()).containsOnlyKeys("ARTIST").containsEntry("ARTIST", List.of("Artist"));
     }
 }

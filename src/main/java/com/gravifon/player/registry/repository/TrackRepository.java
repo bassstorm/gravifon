@@ -1,43 +1,68 @@
 package com.gravifon.player.registry.repository;
 
+import com.gravifon.player.persistence.AdmissionScope;
+import com.gravifon.player.persistence.JpaAdmissionLockStore;
+import com.gravifon.player.persistence.JpaTrackStore;
 import com.gravifon.player.registry.model.Track;
-import com.gravifon.player.registry.model.TrackId;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import org.jmolecules.architecture.onion.simplified.DomainRing;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
-@DomainRing
-public interface TrackRepository {
-    List<Track> findAll();
+@Repository
+@RequiredArgsConstructor
+public class TrackRepository {
+    private final JpaTrackStore store;
+    private final JpaAdmissionLockStore admissionLocks;
 
-    Optional<Track> findById(String id);
-
-    default Optional<Track> findById(TrackId id) {
-        return findById(id.value());
+    @Transactional(readOnly = true)
+    public List<Track> findAll() {
+        return store.findAll().stream().map(TrackConverter::toDomain).toList();
     }
 
-    boolean existsById(String id);
-
-    default boolean existsById(TrackId id) {
-        return existsById(id.value());
+    @Transactional(readOnly = true)
+    public Optional<Track> findById(String id) {
+        return store.findById(id).map(TrackConverter::toDomain);
     }
 
-    List<Track> findAllById(Iterable<String> ids);
-
-    default List<Track> findAllById(List<TrackId> ids) {
-        return findAllById(ids.stream().map(TrackId::value).toList());
+    @Transactional(readOnly = true)
+    public boolean existsById(String id) {
+        return store.existsById(id);
     }
 
-    Track save(Track track);
+    @Transactional(readOnly = true)
+    public List<Track> findAllById(Collection<String> ids) {
+        return store.findAllById(ids).stream().map(TrackConverter::toDomain).toList();
+    }
 
-    /**
-     * Serializes creation of shared tracks. Must be taken before resolving a track by ID and creating it if absent.
-     */
-    void lockCreation();
+    @Transactional
+    public Track save(Track track) {
+        return TrackConverter.toDomain(store.save(TrackConverter.toEntity(track)));
+    }
 
-    void deleteById(String id);
+    @Transactional
+    public List<Track> saveAll(Collection<Track> tracks) {
+        return store
+            .saveAll(tracks.stream().map(TrackConverter::toEntity).toList())
+            .stream()
+            .map(TrackConverter::toDomain)
+            .toList();
+    }
 
-    default void deleteById(TrackId id) {
-        deleteById(id.value());
+    @Transactional
+    public void deleteById(String id) {
+        store.deleteById(id);
+    }
+
+    @Transactional
+    public void deleteAllById(Collection<String> ids) {
+        store.deleteAllById(ids);
+    }
+
+    @Transactional
+    public void lockCreation() {
+        admissionLocks.lock(AdmissionScope.TRACK);
     }
 }

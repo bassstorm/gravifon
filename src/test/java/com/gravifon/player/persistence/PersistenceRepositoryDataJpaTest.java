@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackState;
-import com.gravifon.player.registry.repository.JpaTrackRepository;
+import com.gravifon.player.registry.repository.TrackRepository;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -14,10 +14,10 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
 @DataJpaTest
-@Import(JpaTrackRepository.class)
+@Import(TrackRepository.class)
 class PersistenceRepositoryDataJpaTest {
     @Autowired
-    private JpaTrackRepository tracks;
+    private TrackRepository tracks;
 
     @Test
     void trackMetadataRoundTripPreservesValuesAndOrdering() {
@@ -29,9 +29,7 @@ class PersistenceRepositoryDataJpaTest {
             .get()
             .satisfies(reloaded -> assertThat(reloaded.metadata())
                 .containsEntry("GENRE", List.of("ambient", "downtempo")));
-        assertThat(tracks.findById(com.gravifon.player.registry.model.TrackId.of("track-1"))).isPresent();
         assertThat(tracks.existsById("track-1")).isTrue();
-        assertThat(tracks.existsById(com.gravifon.player.registry.model.TrackId.of("track-1"))).isTrue();
         assertThat(tracks.existsById("non-existent")).isFalse();
         assertThat(tracks.findAllById(List.of("track-1", "non-existent"))).hasSize(1);
 

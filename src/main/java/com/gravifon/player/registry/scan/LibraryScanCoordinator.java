@@ -9,15 +9,15 @@ import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.repository.TrackRepository;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jmolecules.architecture.onion.simplified.ApplicationRing;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@ApplicationRing
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -25,14 +25,18 @@ public class LibraryScanCoordinator {
     private final LibraryProperties properties;
     private final LibraryScanner scanner;
     private final TrackRepository trackRepository;
-    private final ReferencedTrackIdsPort referencedTrackIdsPort;
+    private final List<ReferencedTrackIdsPort> referencedTrackIdsProviders;
     private final ScanReconciler scanReconciler;
 
     @Transactional
     public synchronized void scan() {
         Path root = properties.musicRoot().toAbsolutePath().normalize();
         List<Track> existing = trackRepository.findAll();
-        Set<String> referenced = referencedTrackIdsPort.getReferencedTrackIds();
+        Set<String> referenced = referencedTrackIdsProviders
+            .stream()
+            .map(ReferencedTrackIdsPort::getReferencedTrackIds)
+            .flatMap(Collection::stream)
+            .collect(Collectors.toUnmodifiableSet());
         for (ScanReconciler.Decision decision : scanReconciler.reconcile(existing, scanner.scan(root), referenced)) {
             switch (decision.type()) {
                 case CREATE, REFRESH -> trackRepository.save(trackFrom(decision));

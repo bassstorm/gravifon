@@ -8,7 +8,7 @@ import java.util.Objects;
 
 public record StreamTrack(
         String id,
-        TrackMetadata trackMetadata,
+        Map<String, List<String>> metadata,
         Long durationSeconds,
         TrackState state,
         String sourceUrl,
@@ -17,33 +17,12 @@ public record StreamTrack(
 ) implements Track {
     public StreamTrack {
         Objects.requireNonNull(id, "id");
-        Objects.requireNonNull(trackMetadata, "trackMetadata");
+        if (id.isBlank()) {
+            throw new IllegalArgumentException("Track id cannot be blank");
+        }
+        metadata = new TrackMetadata(metadata).values();
         Objects.requireNonNull(state, "state");
         Objects.requireNonNull(sourceUrl, "sourceUrl");
-    }
-
-    public StreamTrack(
-            String id,
-            Map<String, List<String>> metadata,
-            Long durationSeconds,
-            TrackState state,
-            String sourceUrl,
-            String streamUrl,
-            Instant expiresAfter
-    ) {
-        this(id, new TrackMetadata(metadata), durationSeconds, state, sourceUrl, streamUrl, expiresAfter);
-    }
-
-    public StreamTrack(
-            TrackId trackId,
-            Map<String, List<String>> metadata,
-            Long durationSeconds,
-            TrackState state,
-            String sourceUrl,
-            String streamUrl,
-            Instant expiresAfter
-    ) {
-        this(trackId.value(), metadata, durationSeconds, state, sourceUrl, streamUrl, expiresAfter);
     }
 
     @Override
@@ -63,7 +42,7 @@ public record StreamTrack(
     public StreamTrack withStream(String newStreamUrl, Instant newExpiresAfter) {
         return new StreamTrack(
                 id,
-                trackMetadata,
+                metadata,
                 durationSeconds,
                 TrackState.healthy(),
                 sourceUrl,
@@ -74,11 +53,11 @@ public record StreamTrack(
 
     @Override
     public StreamTrack withState(TrackState newState) {
-        return new StreamTrack(id, trackMetadata, durationSeconds, newState, sourceUrl, streamUrl, expiresAfter);
+        return new StreamTrack(id, metadata, durationSeconds, newState, sourceUrl, streamUrl, expiresAfter);
     }
 
     @Override
-    public StreamTrack withMetadata(TrackMetadata newMetadata) {
+    public StreamTrack withMetadata(Map<String, List<String>> newMetadata) {
         return new StreamTrack(id, newMetadata, durationSeconds, state, sourceUrl, streamUrl, expiresAfter);
     }
 }

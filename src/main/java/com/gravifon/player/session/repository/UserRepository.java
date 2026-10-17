@@ -1,26 +1,43 @@
 package com.gravifon.player.session.repository;
 
+import com.gravifon.player.persistence.AdmissionScope;
+import com.gravifon.player.persistence.JpaAdmissionLockStore;
+import com.gravifon.player.persistence.JpaUserStore;
 import com.gravifon.player.session.model.User;
 import com.gravifon.player.session.model.UserId;
 import java.util.Optional;
-import org.jmolecules.architecture.onion.simplified.DomainRing;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
-@DomainRing
-public interface UserRepository {
-    Optional<User> findByNormalizedName(String normalizedName);
+@Repository
+@RequiredArgsConstructor
+public class UserRepository {
+    private final JpaUserStore store;
+    private final JpaAdmissionLockStore admissionLocks;
 
-    Optional<User> findById(UserId id);
+    @Transactional(readOnly = true)
+    public Optional<User> findByNormalizedName(String normalizedName) {
+        return store.findByNormalizedName(normalizedName).map(UserConverter::toDomain);
+    }
 
-    User save(User user);
+    @Transactional(readOnly = true)
+    public Optional<User> findById(UserId id) {
+        return store.findById(id.value()).map(UserConverter::toDomain);
+    }
 
-    /**
-     * Serializes creation of users. Must be called before resolving a user by name when the user may not exist yet.
-     */
-    void lockCreation();
+    @Transactional
+    public User save(User user) {
+        return UserConverter.toDomain(store.save(UserConverter.toEntity(user)));
+    }
 
-    /**
-     * Acquires the serialization lock for this user before changes to sessions or user-owned state. Lock in order:
-     * admission, user, then session/context/playlist state, then shared tracks in sorted ID order.
-     */
-    Optional<User> lockById(UserId id);
+    @Transactional
+    public void lockCreation() {
+        admissionLocks.lock(AdmissionScope.USER);
+    }
+
+    @Transactional
+    public Optional<User> lockById(UserId id) {
+        return store.lockById(id.value()).map(UserConverter::toDomain);
+    }
 }

@@ -2,9 +2,7 @@ package com.gravifon.player.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.gravifon.player.registry.repository.JpaTrackRepository;
 import com.gravifon.player.registry.repository.TrackRepository;
-import com.gravifon.player.session.repository.JpaUserRepository;
 import com.gravifon.player.session.repository.UserRepository;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -15,7 +13,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
 @DataJpaTest
-@Import({JpaUserRepository.class, JpaTrackRepository.class})
+@Import({UserRepository.class, TrackRepository.class})
 class AdmissionLockDataJpaTest {
     @Autowired
     private JpaAdmissionLockStore admissionLocks;

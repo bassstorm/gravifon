@@ -2,6 +2,7 @@ package com.gravifon.player.registry.scan;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,7 +49,13 @@ class LibraryScanCoordinatorTest {
         });
         ReferencedTrackIdsPort referencedPort = () -> Set.of();
         LibraryScanCoordinator coordinator =
-                new LibraryScanCoordinator(properties, scanner, repository, referencedPort, new ScanReconciler());
+                new LibraryScanCoordinator(
+                        properties,
+                        scanner,
+                        repository,
+                        List.of(referencedPort),
+                        new ScanReconciler()
+        );
 
         coordinator.scan();
 
@@ -76,7 +83,13 @@ class LibraryScanCoordinatorTest {
         });
         ReferencedTrackIdsPort referencedPort = () -> Set.of();
         LibraryScanCoordinator coordinator =
-                new LibraryScanCoordinator(properties, scanner, repository, referencedPort, new ScanReconciler());
+                new LibraryScanCoordinator(
+                        properties,
+                        scanner,
+                        repository,
+                        List.of(referencedPort),
+                        new ScanReconciler()
+        );
 
         coordinator.scan();
         assertThat(stored.getFirst().state().lastError().kind()).isEqualTo("READ_ERROR");
@@ -96,11 +109,49 @@ class LibraryScanCoordinatorTest {
         when(repository.findById("referenced")).thenReturn(Optional.of(referenced));
         ReferencedTrackIdsPort referencedPort = () -> Set.of("referenced");
         LibraryScanCoordinator coordinator =
-                new LibraryScanCoordinator(properties, scanner, repository, referencedPort, new ScanReconciler());
+                new LibraryScanCoordinator(
+                        properties,
+                        scanner,
+                        repository,
+                        List.of(referencedPort),
+                        new ScanReconciler()
+        );
 
         coordinator.scan();
 
         verify(repository).deleteById("unreferenced");
         verify(repository).save(any(Track.class));
+    }
+
+    @Test
+    void scanUnionsReferencesFromMultipleProvidersAndAcceptsNoProviders(@TempDir Path musicRoot) {
+        LibraryProperties properties = new LibraryProperties(musicRoot, true);
+        when(scanner.scan(any())).thenReturn(List.of());
+        Track first = new FileTrack("first", Map.of(), 1L, TrackState.healthy(), "first.mp3", "mp3");
+        Track second = new FileTrack("second", Map.of(), 1L, TrackState.healthy(), "second.mp3", "mp3");
+        Track unreferenced = new FileTrack("unreferenced", Map.of(), 1L, TrackState.healthy(), "removed.mp3", "mp3");
+        when(repository.findAll()).thenReturn(List.of(first, second, unreferenced));
+        when(repository.findById("first")).thenReturn(Optional.of(first));
+        when(repository.findById("second")).thenReturn(Optional.of(second));
+
+        LibraryScanCoordinator coordinator = new LibraryScanCoordinator(
+                properties,
+                scanner,
+                repository,
+                List.of(() -> Set.of("first"), () -> Set.of("second", "first")),
+                new ScanReconciler()
+        );
+
+        coordinator.scan();
+
+        verify(repository, times(2)).save(any(Track.class));
+        verify(repository).deleteById("unreferenced");
+
+        LibraryScanCoordinator withoutProviders =
+                new LibraryScanCoordinator(properties, scanner, repository, List.of(), new ScanReconciler());
+        withoutProviders.scan();
+
+        verify(repository).deleteById("first");
+        verify(repository).deleteById("second");
     }
 }

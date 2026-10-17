@@ -17,19 +17,41 @@ Prefer small, composable services and pure transformation methods over large mul
 - Use `@MockitoBean` in Spring test slices, not the deprecated `@MockBean`
 - Coverage gate: ≥ 80% line coverage on business logic, enforced via JaCoCo in `mvn verify`
 - Before adding custom validation, configuration binding, defaults, HTTP client setup, error mapping, range handling, or scheduling, check for an existing Spring Boot, Spring Framework, or library capability and prefer its declarative form; justify custom code only when no framework capability meets the requirement.
-- Keep the domain ring framework-free: express domain invariants in plain domain code rather than framework annotations or services.
+- Keep domain model and identity packages (`..model..`, `..identity..`) framework-free; express invariants in plain Java and enforce their purity with plain ArchUnit rules.
 - Define configuration properties as plain records with declarative constraints and no code defaults. Keep defaults in `application.yml`.
 - Do not add tests that only verify framework guarantees, configuration binding, property accessors, or bean wiring; test Gravifon behavior instead.
 - Lifecycle conventions: avoid `@PostConstruct` for blocking I/O, proxy-dependent work, or startup coordination. Use ordered `ApplicationRunner` beans for deterministic pre-ready setup and `@EventListener(ApplicationReadyEvent.class)` (paired with `@Async` where non-blocking) for post-startup tasks.
 - Stream refresh is tracks-only: playback selects the bounded upcoming track list; the pure refresh planner selects due stream URLs; the refresher owns single-flight retry, timeout, and failure policy on the managed virtual-thread executor. Request-time refresh uses the configured minimum validity, while scheduled refresh uses the look-ahead margin.
 - Health readiness contains only the database and readable music-library mount. Liveness is process-only; scan outcomes remain observable health detail and must not degrade aggregate or readiness status.
 
+### Vertical Slice Architecture & Cross-Slice Communication
+
+- Keep code within the `session`, `registry`, `playlist`, `playback`, and `streaming` vertical slices. Shared boundary packages are `api`, `persistence`, `config`, `error`, and `observability`.
+- Dependencies point only in the permitted directions below (`A -> B` means A may depend on B). Do not add reverse or unlisted slice dependencies; `DomainArchitectureArchUnitTest` enforces these boundaries.
+
+| Slice | Allowed dependencies | Must not depend on |
+|-------|----------------------|-------------------|
+| `session` | `persistence`, `config`, `error` | `registry`, `playlist`, `playback`, `streaming`, `api`, `observability` |
+| `registry` | `persistence`, `config`, `error` | `session`, `playlist`, `playback`, `streaming`, `api`, `observability` |
+| `playlist` | `session.model`, `session.repository`, `registry.model`, `registry.repository`, `persistence`, `config`, `error` | `playback`, `streaming`, `api`, `observability`, `session.service`, `registry.service`, `registry.scan`, `registry.metadata`, `registry.stream` |
+| `playback` | `playlist.model`, `session.model`, `session.repository`, `session.service`, `registry.model`, `registry.repository`, `persistence`, `config`, `error` | `playlist.service`, `playlist.repository`, `streaming`, `api`, `observability` |
+| `streaming` | `registry`, `playback`, `session.model`, `config`, `error` | `playlist`, `persistence`, `api`, `observability` |
+| `persistence` | None of the slices, `api`, `config`, or `observability` | `session`, `registry`, `playlist`, `playback`, `streaming`, `api`, `config`, `observability` |
+| `api` | `session`, `registry`, `playlist`, `playback`, `streaming`, `config`, `error`, `observability` | `persistence` |
+
+- Keep `..model..` and `..identity..` packages (except `api.model`) free of Spring, Jakarta, jaudiotagger, Lombok, and dependencies on service, repository, persistence, API, config, observability, streaming, scan, metadata, or stream packages.
+- Keep `..service..`, `..scan..`, and `..stream..` packages free of API, persistence, and Servlet dependencies. Repository public method signatures expose domain types only, never persistence entities, `Jpa*Store` types, or Spring Data types.
+- Apply YAGNI: do not add a `*Repository` interface plus a 1:1 JPA adapter, or a policy interface plus a single implementation. Use a concrete `@Repository` in `<slice>/repository` unless genuine multiple implementations or a plug-in boundary justify an interface.
+- Use synchronous `@EventListener` delivery for cross-slice reactions that must run atomically inside the caller's transaction and lock boundary. Reserve `@TransactionalEventListener(AFTER_COMMIT)` for non-blocking post-commit side effects.
+- Inject `List<Port>` or `List<Strategy>` where a coordinator aggregates 0..N contributors or selects a provider. For example, `LibraryScanCoordinator` unions all `ReferencedTrackIdsPort` results, while resolver registries can use an ordered strategy list. An empty provider list should be a valid no-provider case.
+
 ### Persistence
 
 - Configure datasources declaratively with Spring Boot `spring.datasource.*` properties; avoid custom `DataSource` beans for database setup.
 - Use H2 for runtime persistence with its file stored under `GRAVIFON_CONFIG_DIR` (default `/config`), and use an isolated in-memory H2 database for tests.
 - Flyway owns schema creation and evolution. Keep Hibernate at `ddl-auto: validate`; do not use Hibernate schema creation or updates.
-- Keep domain repository ports separate from Spring Data `JpaRepository` stores, with persistence adapters implementing the domain ports.
+- Encapsulate Spring Data `Jpa*Store` interfaces and JPA `*Entity` classes inside concrete `@Repository` classes in `<slice>/repository` that expose only domain records.
+- Keep domain-to-entity mapping in package-private, stateless plain Java `<slice>/repository/*Converter` classes. Test converters directly in isolation from the same package; do not register them as Spring beans or import them in JPA test slices.
 - Use `@DataJpaTest` with Flyway and Hibernate schema validation to verify entity mappings; do not bypass datasource replacement or import custom datasource configuration.
 
 ### Test Isolation and Boundaries
@@ -44,7 +66,7 @@ Prefer small, composable services and pure transformation methods over large mul
 
 - Keep controllers strictly presentation-focused: handle routing, request decoding, and status translation without opening transaction boundaries.
 - Encapsulate multi-step mutations and aggregate orchestration in atomic, `@Transactional` application-service methods rather than chaining operations in controllers.
-- Separate presentation DTOs from application contracts: keep request models in the infrastructure ring and map them to application commands before invoking services.
+- Separate presentation DTOs from application contracts: keep request models in the `api` slice and map them to application commands before invoking services.
 - Validate request inputs declaratively at the boundary using Bean Validation annotations (`@Valid`) to reject malformed or invalid payloads before reaching business logic.
 - Use dedicated request DTOs for create and update operations; keep operation-specific invariants such as catalog exclusivity authoritative in the application service.
 - Model conditional track-failure reporting without null-bypass regex constraints, and expose explicit service operations for reporting failures and clearing them.

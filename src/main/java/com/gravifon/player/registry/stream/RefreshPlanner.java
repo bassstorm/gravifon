@@ -8,10 +8,8 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import org.jmolecules.architecture.onion.simplified.ApplicationRing;
 import org.springframework.stereotype.Component;
 
-@ApplicationRing
 @Component
 public class RefreshPlanner {
     private static final Comparator<StreamTrack> URGENCY_ORDER = Comparator

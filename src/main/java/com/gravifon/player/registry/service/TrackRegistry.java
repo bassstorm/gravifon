@@ -7,7 +7,6 @@ import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackError;
-import com.gravifon.player.registry.model.TrackMetadata;
 import com.gravifon.player.registry.model.TrackState;
 import com.gravifon.player.registry.repository.TrackRepository;
 import com.gravifon.player.registry.scan.LibraryScanCoordinator;
@@ -79,13 +78,12 @@ public class TrackRegistry {
     @Transactional
     public Track updateMetadata(String trackId, Map<String, List<String>> metadata) {
         Track track = getTrack(trackId);
-        TrackMetadata normalized = new TrackMetadata(metadata);
-        Track updated = track.withMetadata(normalized);
+        Track updated = track.withMetadata(metadata);
         writeBackHandlers
             .stream()
             .filter(handler -> handler.supports(updated))
             .findFirst()
-            .ifPresent(handler -> handler.writeBack(updated, normalized.values()));
+            .ifPresent(handler -> handler.writeBack(updated, updated.metadata()));
         return trackRepository.save(updated);
     }
 

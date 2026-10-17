@@ -10,8 +10,6 @@ import com.gravifon.player.session.model.User;
 import com.gravifon.player.session.model.UserId;
 import com.gravifon.player.session.model.Username;
 import com.gravifon.player.session.repository.ClientSessionRepository;
-import com.gravifon.player.session.repository.JpaClientSessionRepository;
-import com.gravifon.player.session.repository.JpaUserRepository;
 import com.gravifon.player.session.repository.UserRepository;
 import com.gravifon.player.session.service.SessionAcquisition;
 import com.gravifon.player.session.service.SessionTransactions;
@@ -27,7 +25,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 
 @DataJpaTest
-@Import({JpaUserRepository.class, JpaClientSessionRepository.class})
+@Import({UserRepository.class, ClientSessionRepository.class})
 class SessionRepositoryDataJpaTest {
     private static final Instant CREATED_AT = Instant.parse("2026-01-01T00:00:00Z");
     @Autowired

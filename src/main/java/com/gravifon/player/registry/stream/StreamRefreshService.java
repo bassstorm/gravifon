@@ -7,10 +7,8 @@ import java.time.Instant;
 import java.util.Collection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jmolecules.architecture.onion.simplified.ApplicationRing;
 import org.springframework.stereotype.Service;
 
-@ApplicationRing
 @Slf4j
 @Service
 @RequiredArgsConstructor
