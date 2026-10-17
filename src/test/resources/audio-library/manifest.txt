@@ -1,0 +1,28 @@
+Synthetic audio fixtures generated locally with FFmpeg 7.1 lavfi sine sources.
+
+amber-signal.mp3
+  duration: 3.030 s
+  format: MP3
+  title: Amber Signal
+  artist: Fiona Vale
+  album: Shared Scenes
+  source tone: 440 Hz sine
+
+blue-current.flac
+  duration: 3.000 s
+  format: FLAC
+  title: Blue Current
+  artist: Jun Park
+  album: Shared Scenes
+  source tone: 554 Hz sine
+
+green-air.ogg
+  duration: 3.000 s
+  format: Ogg Vorbis
+  title: Green Air
+  artist: Fiona Vale
+  album: Open Rooms
+  source tone: 659 Hz sine
+
+Expected metadata duration tolerance: MP3 within 1 second; FLAC and Ogg Vorbis
+within 0 seconds of the listed integer duration.

@@ -1,5 +1,7 @@
 package com.gravifon.player.registry.repository;
 
+import com.gravifon.player.persistence.AdmissionScope;
+import com.gravifon.player.persistence.JpaAdmissionLockStore;
 import com.gravifon.player.persistence.JpaTrackStore;
 import com.gravifon.player.persistence.TrackEntity;
 import com.gravifon.player.persistence.TrackMetadataEntity;
@@ -26,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class JpaTrackRepository implements TrackRepository {
     private final JpaTrackStore store;
+    private final JpaAdmissionLockStore admissionLocks;
 
     @Override
     @Transactional(readOnly = true)
@@ -98,6 +101,12 @@ public class JpaTrackRepository implements TrackRepository {
     @Transactional
     public void deleteById(String id) {
         store.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public void lockCreation() {
+        admissionLocks.lock(AdmissionScope.TRACK);
     }
 
     private Track toDomain(TrackEntity entity) {

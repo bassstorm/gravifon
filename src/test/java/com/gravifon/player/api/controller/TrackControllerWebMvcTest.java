@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.gravifon.player.api.error.ApiExceptionHandler;
+import com.gravifon.player.api.interceptor.ClientSessionInterceptor;
 import com.gravifon.player.error.EntityNotFoundException;
 import com.gravifon.player.observability.CorrelationIdFilter;
 import com.gravifon.player.registry.model.FileTrack;
@@ -23,6 +24,7 @@ import com.gravifon.player.registry.service.TrackRegistry;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -38,6 +40,13 @@ class TrackControllerWebMvcTest {
     private MockMvc mockMvc;
     @MockitoBean
     private TrackRegistry trackRegistry;
+    @MockitoBean
+    private ClientSessionInterceptor clientSessionInterceptor;
+
+    @BeforeEach
+    void allowRequestsThroughSessionInterceptor() {
+        when(clientSessionInterceptor.preHandle(any(), any(), any())).thenReturn(true);
+    }
 
     @Test
     void listTracks_returnsTrackDtosAndPreservesCorrelationHeader() throws Exception {
@@ -69,6 +78,7 @@ class TrackControllerWebMvcTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.status").value(404))
             .andExpect(jsonPath("$.error").value("Not Found"))
+            .andExpect(jsonPath("$.code").value("NOT_FOUND"))
             .andExpect(jsonPath("$.message").value("Track not found: missing"))
             .andExpect(jsonPath("$.path").value("/api/tracks/missing"))
             .andExpect(jsonPath("$.correlationId").value("cid-missing"));
@@ -86,6 +96,7 @@ class TrackControllerWebMvcTest {
             .andExpect(status().isInternalServerError())
             .andExpect(jsonPath("$.status").value(500))
             .andExpect(jsonPath("$.error").value("Internal Server Error"))
+            .andExpect(jsonPath("$.code").value("SERVER_ERROR"))
             .andExpect(jsonPath("$.message").value("Unexpected server error"))
             .andExpect(jsonPath("$.path").value("/api/tracks/boom"))
             .andExpect(jsonPath("$.correlationId").value("cid-500"));
@@ -123,6 +134,7 @@ class TrackControllerWebMvcTest {
             )
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
             .andExpect(jsonPath("$.message").value("metadata: must not be null"));
     }
 

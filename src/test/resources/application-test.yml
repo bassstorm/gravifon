@@ -9,3 +9,5 @@ gravifon:
   config-dir: ${GRAVIFON_CONFIG_DIR:${java.io.tmpdir}/gravifon-test}
   library:
     startup-scan-enabled: false
+  sessions:
+    cleanup-cron: "-"

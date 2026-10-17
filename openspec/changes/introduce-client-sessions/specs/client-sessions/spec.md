@@ -11,6 +11,10 @@ The system SHALL acquire a session from a username without credentials, trim sur
 - **WHEN** clients acquire using `Alice` and ` alice `
 - **THEN** their distinct sessions reference the same user and display `Alice`
 
+#### Scenario: Concurrent first acquisitions of equivalent names
+- **WHEN** two clients acquire `Alice` and ` alice ` at the same time and no user yet exists for that name
+- **THEN** both acquisitions succeed, both sessions reference the same single user, and neither fails on a username uniqueness conflict
+
 #### Scenario: Invalid username
 - **WHEN** acquisition supplies a blank, oversized, or unsupported username
 - **THEN** it fails explicitly without creating a user or session

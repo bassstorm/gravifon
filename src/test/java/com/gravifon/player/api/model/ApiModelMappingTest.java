@@ -2,10 +2,6 @@ package com.gravifon.player.api.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.gravifon.player.playback.model.PlaybackMode;
-import com.gravifon.player.playback.model.PlaybackState;
-import com.gravifon.player.playback.model.TransportState;
-import com.gravifon.player.playlist.model.Playlist;
 import com.gravifon.player.registry.model.FileTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackState;
@@ -21,24 +17,9 @@ class ApiModelMappingTest {
     void requestModelsExposeDeclarativeValidationConstraints() {
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             Validator validator = factory.getValidator();
-            PlaylistCreateRequest blankName = new PlaylistCreateRequest(" ", List.of(), List.of(), false, null);
-            PlaylistUpdateRequest omittedName = new PlaylistUpdateRequest(null, List.of(), List.of(), List.of(), null);
-            PlaylistUpdateRequest blankUpdateName =
-                    new PlaylistUpdateRequest(" ", List.of(), List.of(), List.of(), null);
-            PositionReportRequest negativePosition = new PositionReportRequest("", -1);
             TrackMetadataUpdateRequest missingMetadata = new TrackMetadataUpdateRequest(null);
             TrackMetadataUpdateRequest invalidMetadata = new TrackMetadataUpdateRequest(Map.of("TITLE", List.of("")));
 
-            assertThat(validator.validate(blankName))
-                .extracting(violation -> violation.getPropertyPath().toString())
-                .contains("name");
-            assertThat(validator.validate(omittedName)).isEmpty();
-            assertThat(validator.validate(blankUpdateName))
-                .extracting(violation -> violation.getPropertyPath().toString())
-                .contains("nameValid");
-            assertThat(validator.validate(negativePosition))
-                .extracting(violation -> violation.getPropertyPath().toString())
-                .contains("trackId", "positionSeconds");
             assertThat(validator.validate(missingMetadata))
                 .extracting(violation -> violation.getPropertyPath().toString())
                 .contains("metadata");
@@ -58,29 +39,5 @@ class ApiModelMappingTest {
         assertThat(response.filename()).isEqualTo("a.mp3");
         assertThat(response.format()).isEqualTo("mp3");
         assertThat(response.durationSeconds()).isEqualTo(42L);
-    }
-
-    @Test
-    void playlistResponse_fromSetsActiveFlagByIdMatch() {
-        Playlist playlist = new Playlist("p1", "Playlist", List.of("t1"));
-
-        PlaylistResponse active = PlaylistResponse.from(playlist, "p1");
-        PlaylistResponse inactive = PlaylistResponse.from(playlist, "other");
-
-        assertThat(active.active()).isTrue();
-        assertThat(inactive.active()).isFalse();
-    }
-
-    @Test
-    void playbackStateResponse_fromMapsAndNormalizesEnumValues() {
-        PlaybackState state = new PlaybackState("all-tracks", "t1", PlaybackMode.RANDOM, TransportState.PAUSED, 8);
-
-        PlaybackStateResponse response = PlaybackStateResponse.from(state);
-
-        assertThat(response.activePlaylistId()).isEqualTo("all-tracks");
-        assertThat(response.currentTrackId()).isEqualTo("t1");
-        assertThat(response.playbackMode()).isEqualTo("random");
-        assertThat(response.transportState()).isEqualTo("paused");
-        assertThat(response.positionSeconds()).isEqualTo(8);
     }
 }

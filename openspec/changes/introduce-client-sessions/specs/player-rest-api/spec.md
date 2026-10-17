@@ -22,7 +22,7 @@ The API SHALL expose `POST /api/sessions` with username returning session/user i
 - **AND** deleting that current session returns 204 and subsequent protected requests with it return 401
 
 ### Requirement: API exposes independent shared stream registration
-The API SHALL accept `POST /api/tracks/streams` with a nonempty `sourceUrls` list of HTTP/HTTPS URLs and return ordered `trackIds` without creating playlists or altering playback.
+The API SHALL accept `POST /api/tracks/streams` with a nonempty `sourceUrls` list of nonblank strings and return ordered `trackIds` without creating playlists or altering playback. URL syntax and supported schemes SHALL be decided by the selected stream resolver.
 
 #### Scenario: Source expands to tracks
 - **WHEN** a valid caller registers a source resolving to multiple tracks

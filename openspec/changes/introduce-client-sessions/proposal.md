@@ -34,7 +34,7 @@ The API is deliberately sessionless, so the server cannot distinguish player ins
 ## Impact
 
 - Adds a session filter or interceptor in front of all controllers, a session acquisition endpoint, and a mapping of the session-required outcome to HTTP 401.
-- Uses JPA/Flyway users and sessions, normalized-name uniqueness, user-row serialization, MVC interception, and configurable 24-hour inactivity with hourly cleanup. Username limits, transaction boundaries, API shapes, and test targets are defined in Part 2.
+- Uses JPA/Flyway users and sessions, normalized-name uniqueness and track identity as backstops, admission-row serialization of user and shared-track creation, user-row serialization, MVC interception, and configurable 24-hour inactivity with hourly cleanup. Username limits, transaction boundaries, API shapes, and test targets are defined in Part 2.
 - Future API clients must acquire a session and reacquire on session-required. Client implementation is deliberately deferred until the API/workflow settle; no client location or implementation is a blocker. API integration tests establish sessions through the public contract.
 - Preserve existing `CorrelationId` logging; this change does not introduce optional raw session-ID logging. Playback owns revised operation-lifecycle terminology.
 - Prerequisite for `redesign-playlist-and-playback-queue`, which implements user-owned playlists and playback contexts and a per-context active-player pointer to one of that user's sessions.

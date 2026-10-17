@@ -1,6 +1,5 @@
 package com.gravifon.player.streaming;
 
-import com.gravifon.player.playback.service.PlaybackService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -10,7 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Locale;
-import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourceRegion;
@@ -23,13 +21,10 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
-@RequiredArgsConstructor
 public class AudioStreamingService {
     private static final MediaType FLAC_MEDIA_TYPE = MediaType.parseMediaType("audio/flac");
-    private final PlaybackService playbackService;
 
-    public void streamFile(String trackId, Path trackPath, HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
+    public void streamFile(Path trackPath, HttpServletRequest request, HttpServletResponse response) throws IOException {
         long fileLength;
         try (FileChannel probe = FileChannel.open(trackPath, StandardOpenOption.READ)) {
             fileLength = probe.size();
@@ -48,7 +43,6 @@ public class AudioStreamingService {
             try (FileChannel channel = FileChannel.open(trackPath, StandardOpenOption.READ)) {
                 channel.transferTo(0, fileLength, Channels.newChannel(response.getOutputStream()));
             }
-            playbackService.observeStream(trackId, fileLength - 1, fileLength);
             return;
         }
 
@@ -63,7 +57,6 @@ public class AudioStreamingService {
         try (FileChannel channel = FileChannel.open(trackPath, StandardOpenOption.READ)) {
             channel.transferTo(start, count, Channels.newChannel(response.getOutputStream()));
         }
-        playbackService.observeStream(trackId, end, fileLength);
     }
 
     public ResourceRegion parseSingleRegion(String rawRange, Resource resource, long fileLength) {

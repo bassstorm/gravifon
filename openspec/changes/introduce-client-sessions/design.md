@@ -103,7 +103,7 @@ Alternative considered: fixed lifetime from acquisition. Rejected because active
 
 Alternative considered: no automatic expiration. Rejected because abandoned player instances would retain sessions indefinitely.
 
-#### 7. Client recovery and acquisition retries
+#### 7. Client recovery and acquisition
 
 There is no separate protocol rule for reload versus restart. A client without a session ID acquires a session. A client retaining its own session ID attempts normal communication; session validation and the playback request-sequence checks determine applicability.
 
@@ -137,7 +137,7 @@ Alternative considered: normalize Play intent to Pause on expiration. Rejected b
 - [Session persistence is mistaken for indefinite validity] -> Apply inactivity expiration across restarts without renewing invalid sessions.
 - [Session infrastructure accumulates playback responsibilities] -> Keep authority and sequencing in the playback-context application boundary.
 - [Username selection is mistaken for authenticated ownership] -> Explicitly document that any caller can select any username; future authenticated claims require a transition policy.
-- [Equivalent usernames create separate owners] -> Enforce unique normalized lookup and atomic resolve-or-create behavior while using stable IDs for state ownership.
+- [Equivalent usernames create separate owners] -> Serialize user creation with the admission lock, enforce uniqueness on the normalized name as a backstop, and use stable IDs for state ownership.
 - [Lost acquisition responses leave unreachable sessions] -> Accept fresh acquisition; abandoned records expire and can be cleaned up without affecting user state.
 - [Delayed cleanup leaves an invalid session referenced as active player] -> Session validity immediately gates authority; coordinate pointer removal independently of physical cleanup timing.
 - [Expiration is mistaken for evidence that audio stopped] -> Preserve intent and observations; do not interrupt an already-open response solely due to expiration.
@@ -248,9 +248,9 @@ Add a cohesive `session` area alongside retained `registry`. Use this existing l
 
 Do not invent alternative `domain`/`application` package trees. Configuration/defaults remain in configuration/application YAML. Exact types/signatures remain concrete design work.
 
-Persist user ID, unique normalized username, display spelling, and session ID/user association/activity/invalidation facts sufficient for the lifecycle. Use database uniqueness and atomic acquisition rather than memory check-then-create. Renewal must not revive invalid/expired sessions. Playback owns sequence/digest storage; separate-table versus column mapping remains concrete design work and must prevent renewal overwrites. Defaults live in YAML with declarative constraints.
+Persist user ID, unique normalized username, display spelling, and session ID/user association/activity/invalidation facts sufficient for the lifecycle. Serialize creation of users and shared tracks with database admission rows (`admission_lock` scopes `USER` and `TRACK`); database uniqueness on normalized names and track identity is a backstop, not a retry trigger. Renewal must not revive invalid/expired sessions. Playback owns sequence/digest storage; separate-table versus column mapping remains concrete design work and must prevent renewal overwrites. Defaults live in YAML with declarative constraints.
 
-Do not adopt renewal throttling by default: it must not silently shorten validity measured from actual accepted activity. Evaluate framework facilities and lifecycle transactions first. A uniqueness exception cannot be caught and retried inside an already rollback-only JPA transaction.
+Do not adopt renewal throttling by default: it must not silently shorten validity measured from actual accepted activity. Evaluate framework facilities and lifecycle transactions first. Acquisition never relies on catching a uniqueness violation; such a violation signals a bypassed lock and propagates as an error.
 
 Gate new API and audio/range requests; acquisition itself must be reachable without a session. Actuator health/probes are outside `/api` and must remain usable without acquiring a player session. Validation and renewal happen at request initiation, not periodically during an open response. A resolved caller is request-scoped input, never an independently authoritative playback singleton.
 
@@ -292,11 +292,11 @@ Use JPA domain-session records, not servlet `HttpSession` or Spring Session JDBC
 | `session/model/ClientSession.java` | Record: ID, userId, createdAt, lastActivityAt, nullable invalidatedAt. `isValidAt(Instant now, Duration timeout)` means not invalidated and `now < lastActivityAt + timeout`. |
 | `session/model/Caller.java` | Validated sessionId/userId pair passed explicitly to application operations. Never trust a request ownership field. |
 | `session/model/SessionInvalidated.java` | Immutable lifecycle event carrying sessionId/userId. Published synchronously when invalidation/expiration is first recorded, including before eligible physical deletion. |
-| `session/repository/UserRepository.java` | `findByNormalizedName`, `findById`, `save`, `lockById(UserId)`; the last uses `PESSIMISTIC_WRITE`. |
+| `session/repository/UserRepository.java` | `findByNormalizedName`, `findById`, `save`, `lockCreation()` (takes the `USER` admission row with `PESSIMISTIC_WRITE`), `lockById(UserId)`; the last uses `PESSIMISTIC_WRITE`. |
 | `session/repository/ClientSessionRepository.java` | `findById`, `save`, `findCleanupCandidates(now, timeout)`, `deleteById`; candidate query is not proof of validity after waiting for a lock. |
 | `session/repository/JpaUserRepository.java`, `JpaClientSessionRepository.java` | Infrastructure adapters; no Spring Data inheritance in domain ports. |
 | `session/service/SessionService.java` | Application lifecycle: `acquire(Username)`, `validateAndRenew(ClientSessionId)`, `invalidate(Caller)`, `expireIfNecessary(ClientSessionId)`. Use transactional worker methods in a separate bean as below. |
-| `session/service/SessionTransactions.java` | Transactional acquisition/lifecycle worker; shared user-row lock and time checks. Return a validity result, not an exception that rolls back an expiration mutation. |
+| `session/service/SessionTransactions.java` | Transactional acquisition/lifecycle worker; `USER` admission lock for user creation, shared user-row lock, and time checks. Return a validity result, not an exception that rolls back an expiration mutation. |
 | `session/service/SessionCleanupScheduler.java` | Hourly candidate enumeration; invoke one lifecycle transaction per candidate, not one long all-user transaction. |
 | `config/SessionProperties.java`, `TimeConfiguration.java` | Plain constrained configuration record and production `Clock.systemUTC()` bean. Focused session unit tests inject `Clock.fixed(...)`; ordinary integration workflows keep real time. No wiring/accessor tests. |
 
@@ -323,14 +323,18 @@ CREATE TABLE client_session (
 );
 CREATE INDEX idx_client_session_user ON client_session(user_id);
 CREATE INDEX idx_client_session_activity ON client_session(last_activity_at);
+CREATE TABLE admission_lock (
+    scope VARCHAR(32) PRIMARY KEY
+);
+INSERT INTO admission_lock (scope) VALUES ('USER'), ('TRACK');
 ```
 
-Create `UserEntity`, `ClientSessionEntity`, `JpaUserStore`, and `JpaClientSessionStore` in `persistence`. Map `Instant` to timezone timestamps and the session user FK without eager aggregate collections. Playback deduplication is not stored here; Phase 3 adds a playback-owned table.
+`admission_lock` rows are seeded by the migration and hold no data. They exist only to serialize creation: `USER` for user acquisition and `TRACK` for shared track registration. Create `UserEntity`, `ClientSessionEntity`, `AdmissionLockEntity`, `AdmissionScope`, `JpaUserStore`, `JpaClientSessionStore`, and `JpaAdmissionLockStore` in `persistence`. `AdmissionScope` is an enum whose names match the seeded rows, stored as strings. `JpaAdmissionLockStore.lock(AdmissionScope)` takes a `PESSIMISTIC_WRITE` lock on that row and fails if the seed is missing. Map `Instant` to timezone timestamps and the session user FK without eager aggregate collections. Playback deduplication is not stored here; Phase 3 adds a playback-owned table.
 
 #### Transactions and lifecycle
 
-- Every operation modifying a user's sessions, playlists, or playback first locks that `app_user` row. The lock order is user, then session/context/playlist state, then shared tracks in sorted ID order. This boundary works without a context in Phase 1.
-- Acquisition is one worker transaction resolving/creating user and session. On an acquisition race, retry only a violation of `uq_app_user_normalized_name`, once in a fresh worker transaction, re-reading the winning user. Do not catch inside the rollback-only transaction; unrelated integrity errors propagate. Use an outer nontransactional facade and separate ordinary `@Transactional` worker invocation, not self-invocation. Without an outer production transaction each completed/failed worker call has its own transaction; do not force `REQUIRES_NEW` for every operation, which would defeat integration-test rollback and later lifecycle coordination.
+- Every operation modifying a user's sessions, playlists, or playback first locks that `app_user` row. Acquisition takes the `USER` admission row before any user lock; track registration takes the `TRACK` admission row before any shared-track lock. No other path takes admission rows. The lock order is admission rows, user, then session/context/playlist state, then shared tracks in sorted ID order. This boundary works without a context in Phase 1.
+- Acquisition is one worker transaction: lock the `USER` row of `admission_lock` with `PESSIMISTIC_WRITE`, resolve the user by normalized name (creating it if absent), lock the user row, and insert the session. Concurrent first acquisitions for one name serialize on the admission row, so the loser finds the winner's committed user and no uniqueness conflict arises. This relies on READ COMMITTED statement snapshots: the lookup runs after the lock is granted. The worker pins `Isolation.READ_COMMITTED` explicitly so a global default change cannot hide the winner's commit; task 2.5 confirms H2's default matches. Every acquisition takes the admission row, even for an existing name; this serialization is acceptable at this scale and keeps a single code path. `uq_app_user_normalized_name` remains a backstop only: a violation means the lock was bypassed, so it propagates as an error and is never caught or retried. Use an outer facade with a separate ordinary `@Transactional` worker invocation, not self-invocation. Without an outer production transaction each completed/failed worker call has its own transaction; do not force `REQUIRES_NEW` for every operation, which would defeat integration-test rollback and later lifecycle coordination.
 - Session lookup may identify the user before locking, but validation must re-read after acquiring the user lock. A deleted record means invalid; do not revive it.
 - Accepted request initiation persists exact server activity time on every request. No throttling, heartbeat, or counting delivered bytes. Even if downstream business validation rejects the payload, a valid session presentation counts as activity.
 - For an expired session, record invalidation and synchronously publish `SessionInvalidated` inside the user-locked transaction. Return an invalid result and commit it; translate to 401 only after that transaction completes. Throwing a rollback exception before commit would incorrectly retain authority.
@@ -352,13 +356,13 @@ Create `SessionController` and `StreamRegistrationController` in `api/controller
 
 Use the existing `ApiErrorResponse` fields plus a stable `code` field: `SESSION_REQUIRED` for session 401, `INVALID_INPUT` for presentation/payload 400; keep other error codes tied to status (`NOT_FOUND`, `SERVER_ERROR`, etc.). Error `path` uses request URI without query. No raw rejected token in message. Preserve correlation ID. Domain session-invalid results/exceptions remain HTTP-free.
 
-Boundary validation: acquisition uses `@NotBlank`, bounded raw input size 256, and the application `Username` transformation above (allows trimmed whitespace); sourceUrls is a nonempty list of nonblank valid HTTP/HTTPS URLs with container-element validation. Use standard URL validation plus scheme restriction at the DTO; application direct calls defensively validate the same contract. Unsupported resolver is an explicit 400 input error; resolver I/O/runtime failure is an explicit server error, not an empty registration.
+Boundary validation: acquisition uses `@NotBlank`, bounded raw input size 256, and the application `Username` transformation above (allows trimmed whitespace); sourceUrls is a nonempty list of nonblank strings with container-element validation. URL syntax and supported schemes are resolver-specific and must not be restricted by the API DTO or registrar. Unsupported resolver is an explicit 400 input error; resolver I/O/runtime failure is an explicit server error, not an empty registration.
 
 #### Registration persistence boundary
 
 Keep `StreamTrackRegistrar` as the coordinating facade, but remove its encompassing transaction around external resolution. Resolve and validate all source results first; then invoke a new `registry/service/StreamRegistrationPersistence` transactional bean to reuse/create registry tracks atomically for the entire result. Keep deterministic `TrackIdentity` behavior and result order. A resolver failure writes no tracks; a persistence failure rolls back registration. No playlist references or context mutations. Preserve existing-track metadata/state rather than silently replacing it on re-registration. Verify using test resolver fixtures; this change adds no real resolver provider.
 
-Within the transaction, collapse repeated resolved identities for persistence while retaining their positions in the response. If concurrent creation wins a track-identity uniqueness race, let that transaction roll back and retry the entire resolved persistence batch once in a fresh worker call; do not re-resolve external sources. Retry only the identified track identity/primary-key uniqueness collision, never unrelated constraints. Re-read winning records without replacing their metadata/state; a second conflict remains an explicit failure.
+Within the transaction, collapse repeated resolved identities for persistence while retaining their positions in the response. First lock the `TRACK` row of `admission_lock` with `PESSIMISTIC_WRITE`, then reuse or create each track by identity under the same READ_COMMITTED isolation as acquisition. Concurrent registrations serialize on that row, so a later registration re-reads the committed winner instead of inserting a duplicate primary key. Re-read winning records without replacing their metadata/state. A `pk_track` or other integrity violation is not caught or retried; it propagates as an error because it means the lock was bypassed. No external source is re-resolved.
 
 #### Configuration and tests
 
@@ -372,7 +376,8 @@ YAML under `gravifon.sessions`: `inactivity-timeout: ${GRAVIFON_SESSION_INACTIVI
 | `persistence/SessionRepositoryDataJpaTest` | Real user/session mappings, normalized uniqueness, first display spelling, renewal/invalidation queries and deletion preserving users. No raw SQL/flush assertions. |
 | `api/controller/SessionControllerWebMvcTest` | DTO/error/status shapes; header/media query/conflict/exemptions; correlation retained on 401. |
 | `SessionWorkflowIntegrationTest` | MockMvc with real services: acquire, read tracks, retrieve audio/range, acquire same/different user, explicitly invalidate, then reacquire. |
-| `registry/service/StreamTrackRegistrarTest` and registration API tests | Resolver fan-out/order/reuse; no partial registration; no playlist orchestration. |
+| `registry/service/StreamTrackRegistrarTest` and registration API tests | Resolver fan-out/order/reuse; no partial registration; propagation of integrity failures without retry; no playlist orchestration. |
+| `persistence/AdmissionLockDataJpaTest` | Seeded `USER`/`TRACK` rows through Flyway and Hibernate validate; `lockCreation()` succeeds inside a transaction; the datasource default isolation is `READ_COMMITTED`, which the post-lock re-read relies on. |
 
 Use explicit timestamps for domain expiration tests and `Clock.fixed(...)` injected directly into focused session unit-test subjects. Verify the exact expiry boundary and request-time rejection independently of the cleanup schedule. No mutable test clock, Spring Boot Clock replacement, sleeps or time advancement are needed. Ordinary MockMvc workflows use real time and `DELETE /api/sessions/current` for authority-loss/reacquisition stories; focused lifecycle integration tests invoke the application invalidation operation, not a DAO update that bypasses its event. Disable session cleanup scheduling in the integration-test profile with cron `-`; job logic is unit-tested, framework scheduling is trusted, and no integration test invokes or waits for the job. Persistence slices still verify actual lifecycle queries, mappings and deletion constraints without executing the job. Use transactional rollback for database-writing integration tests. Preserve the reset checklist's unaffected assertions. Framework wiring-only tests and dedicated race/network/browser harnesses remain excluded.
 

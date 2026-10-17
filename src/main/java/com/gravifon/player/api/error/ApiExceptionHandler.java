@@ -3,6 +3,7 @@ package com.gravifon.player.api.error;
 import com.gravifon.player.api.model.ApiErrorResponse;
 import com.gravifon.player.error.EntityNotFoundException;
 import com.gravifon.player.observability.CorrelationIdFilter;
+import com.gravifon.player.registry.stream.StreamResolverRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.time.Instant;
@@ -95,6 +96,14 @@ public class ApiExceptionHandler {
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(StreamResolverRegistry.NoStreamResolverException.class)
+    public ResponseEntity<ApiErrorResponse> handleUnsupportedStreamSource(
+            StreamResolverRegistry.NoStreamResolverException ex,
+            HttpServletRequest request
+    ) {
+        return buildResponse(HttpStatus.BAD_REQUEST, "No resolver supports a supplied source URL", request);
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiErrorResponse> handleMissingRoute(NoResourceFoundException ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.NOT_FOUND, "Resource not found", request);
@@ -111,8 +120,9 @@ public class ApiExceptionHandler {
                 Instant.now(),
                 status.value(),
                 status.getReasonPhrase(),
+                codeFor(status),
                 message,
-                request.getRequestURI(),
+                requestPath(request),
                 correlationId
         );
         return ResponseEntity.status(status).headers(headers).body(body);
@@ -143,10 +153,29 @@ public class ApiExceptionHandler {
                 Instant.now(),
                 status.value(),
                 status.getReasonPhrase(),
+                codeFor(status),
                 message,
-                request.getRequestURI(),
+                requestPath(request),
                 correlationId
         );
         return ResponseEntity.status(status).body(body);
+    }
+
+    private String requestPath(HttpServletRequest request) {
+        String requestUri = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        return requestUri.substring(contextPath.length());
+    }
+
+    private String codeFor(HttpStatus status) {
+        return switch (status) {
+            case BAD_REQUEST -> "INVALID_INPUT";
+            case UNAUTHORIZED -> "SESSION_REQUIRED";
+            case NOT_FOUND -> "NOT_FOUND";
+            case METHOD_NOT_ALLOWED -> "METHOD_NOT_ALLOWED";
+            case REQUESTED_RANGE_NOT_SATISFIABLE -> "RANGE_NOT_SATISFIABLE";
+            case INTERNAL_SERVER_ERROR -> "SERVER_ERROR";
+            default -> status.name();
+        };
     }
 }

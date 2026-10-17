@@ -52,3 +52,6 @@ gravifon:
     refresh-max-attempts: ${GRAVIFON_STREAM_REFRESH_MAX_ATTEMPTS:2}
     proxy-connect-timeout: ${GRAVIFON_STREAM_PROXY_CONNECT_TIMEOUT:5s}
     proxy-read-timeout: ${GRAVIFON_STREAM_PROXY_READ_TIMEOUT:15s}
+  sessions:
+    inactivity-timeout: ${GRAVIFON_SESSION_INACTIVITY_TIMEOUT:24h}
+    cleanup-cron: "${GRAVIFON_SESSION_CLEANUP_CRON:0 0 * * * *}"

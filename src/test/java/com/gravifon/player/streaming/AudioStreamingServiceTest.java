@@ -2,9 +2,7 @@ package com.gravifon.player.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
-import com.gravifon.player.playback.service.PlaybackService;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import org.junit.jupiter.api.Test;
@@ -15,8 +13,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.web.server.ResponseStatusException;
 
 class AudioStreamingServiceTest {
-    private final PlaybackService playbackService = mock(PlaybackService.class);
-    private final AudioStreamingService service = new AudioStreamingService(playbackService);
+    private final AudioStreamingService service = new AudioStreamingService();
 
     private Resource resourceOfLength(long length) {
         return new AbstractResource() {

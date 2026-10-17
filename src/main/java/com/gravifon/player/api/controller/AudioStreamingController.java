@@ -33,6 +33,6 @@ public class AudioStreamingController {
         }
         Path trackPath = trackRegistry.resolveTrackPath(trackId);
 
-        audioStreamingService.streamFile(trackId, trackPath, request, response);
+        audioStreamingService.streamFile(trackPath, request, response);
     }
 }

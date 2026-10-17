@@ -4,48 +4,65 @@ import com.gravifon.player.registry.identity.TrackIdentity;
 import com.gravifon.player.registry.model.StreamTrack;
 import com.gravifon.player.registry.model.Track;
 import com.gravifon.player.registry.model.TrackState;
-import com.gravifon.player.registry.repository.TrackRepository;
+import com.gravifon.player.registry.stream.StreamResolutionException;
 import com.gravifon.player.registry.stream.StreamResolver;
 import com.gravifon.player.registry.stream.StreamResolverRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class StreamTrackRegistrar {
-    private final TrackRepository trackRepository;
     private final StreamResolverRegistry resolverRegistry;
+    private final StreamRegistrationPersistence persistence;
 
-    public StreamTrackRegistrar(TrackRepository trackRepository, StreamResolverRegistry resolverRegistry) {
-        this.trackRepository = trackRepository;
+    public StreamTrackRegistrar(StreamResolverRegistry resolverRegistry, StreamRegistrationPersistence persistence) {
         this.resolverRegistry = resolverRegistry;
+        this.persistence = persistence;
     }
 
-    @Transactional
     public List<Track> registerSources(List<String> sourceUrls) {
-        List<Track> tracks = new ArrayList<>();
+        if (sourceUrls == null || sourceUrls.isEmpty()) {
+            throw new IllegalArgumentException("At least one source URL is required");
+        }
+
+        List<StreamTrack> resolvedTracks = new ArrayList<>();
         for (String sourceUrl : sourceUrls) {
+            if (sourceUrl == null || sourceUrl.isBlank()) {
+                throw new IllegalArgumentException("Source URLs must not be blank");
+            }
             StreamResolver resolver = resolverRegistry.resolverFor(sourceUrl);
-            for (StreamResolver.ResolvedTrack resolved : resolver.resolveTracks(sourceUrl)) {
-                String id = TrackIdentity.forStream(resolved.sourceUrl(), resolver.normalizer());
-                var existing = trackRepository.findById(id);
-                if (existing.isPresent()) {
-                    tracks.add(existing.get());
-                } else {
-                    Track track = new StreamTrack(
-                            id,
-                            resolved.metadata(),
-                            resolved.durationSeconds(),
-                            TrackState.healthy(),
-                            resolved.sourceUrl(),
-                            null,
-                            null
+            List<StreamResolver.ResolvedTrack> sourceResults;
+            try {
+                sourceResults = resolver.resolveTracks(sourceUrl);
+            } catch (RuntimeException exception) {
+                throw new StreamResolutionException(exception);
+            }
+            if (sourceResults == null || sourceResults.isEmpty()) {
+                throw new StreamResolutionException();
+            }
+            for (StreamResolver.ResolvedTrack resolved : sourceResults) {
+                if (resolved == null) {
+                    throw new StreamResolutionException();
+                }
+                try {
+                    String id = TrackIdentity.forStream(resolved.sourceUrl(), resolver.normalizer());
+                    resolvedTracks.add(
+                            new StreamTrack(
+                                    id,
+                                    resolved.metadata(),
+                                    resolved.durationSeconds(),
+                                    TrackState.healthy(),
+                                    resolved.sourceUrl(),
+                                    null,
+                                    null
+                            )
                     );
-                    tracks.add(trackRepository.save(track));
+                } catch (RuntimeException exception) {
+                    throw new StreamResolutionException(exception);
                 }
             }
         }
-        return List.copyOf(tracks);
+        return persistence.registerResolvedTracks(resolvedTracks);
     }
 }

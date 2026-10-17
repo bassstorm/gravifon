@@ -30,6 +30,11 @@ public interface TrackRepository {
 
     Track save(Track track);
 
+    /**
+     * Serializes creation of shared tracks. Must be taken before resolving a track by ID and creating it if absent.
+     */
+    void lockCreation();
+
     void deleteById(String id);
 
     default void deleteById(TrackId id) {
